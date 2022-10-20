@@ -2,18 +2,32 @@
 
 import argparse
 import boto3
+import botocore.config
 import concurrent.futures
 import datetime
 import json
 import sys
 
 
+boto_config = botocore.config.Config(
+    retries={
+        "total_max_attempts": 5,
+        "mode": "standard"
+    }
+)
+
+
 def get_available_resource_types(region):
+    """
+    Returns a list of resource types that are supported in a region by querying the CloudFormation registry.
+    Examples: AWS::EC2::RouteTable, AWS::IAM::Role, AWS::KMS::Key, etc.
+    """
+    resource_types = set()
     cloudformation_client = boto3.client(
         "cloudformation",
-        region_name=region
+        region_name=region,
+        config=boto_config
     )
-    resource_types = set()
     provisioning_types = ("FULLY_MUTABLE", "IMMUTABLE")
     for provisioning_type in provisioning_types:
         call_params = {
@@ -40,12 +54,20 @@ def get_available_resource_types(region):
 
 
 def get_resources(region, resource_type):
-    cloudcontrol_client = boto3.client(
-        "cloudcontrol",
-        region_name=region
-    )
+    """
+    Returns a list of resources of the given resource type discovered in the given region. Uses the "List" operation
+    of the Cloud Control API. If the API call failed, an empty list is returned. If the API call likely failed because
+    of permission issues, an additional flag is set in the return value.
+    """
     print("{}, {}".format(region, resource_type))
     collected_resources = []
+    list_operation_was_denied = False
+
+    cloudcontrol_client = boto3.client(
+        "cloudcontrol",
+        region_name=region,
+        config=boto_config
+    )
     call_params = {"TypeName": resource_type}
     try:
         while True:
@@ -58,16 +80,23 @@ def get_resources(region, resource_type):
                 call_params["NextToken"] = cloudcontrol_response["NextToken"]
             except KeyError:
                 break
-    except:
+
+    except Exception as ex:
         # There is unfortunately a long and non-uniform list of exceptions that can occur with the Cloud Control API,
-        # presumably because it just passes through the exceptions of the underlying services. Examples are when the
+        # presumably because it just passes through the exceptions of the underlying services. Examples for when the
         # "List" operation requires additional parameters or when the caller lacks permissions for an API call:
         # UnsupportedActionException, InvalidRequestException, GeneralServiceException, ResourceNotFoundException,
-        # HandlerInternalFailureException, AccessDeniedException, AuthorizationError, etc. As the end result is the
-        # same (resources cannot be listed), they are all caught by this broad except clause.
-        pass
+        # HandlerInternalFailureException, AccessDeniedException, AuthorizationError, etc. They are thus handled by
+        # this broad except clause. The end result is the same: resources for this resource type cannot be listed.
 
-    return (resource_type, sorted(collected_resources))
+        # Flag when the "List" operation was likely denied due to a lack of permissions
+        exception_msg = str(ex).lower()
+        for keyword in ("denied", "authorization", "authorized"):
+            if keyword in exception_msg:
+                list_operation_was_denied = True
+                break
+
+    return (resource_type, list_operation_was_denied, sorted(collected_resources))
 
 
 if __name__ == "__main__":
@@ -81,39 +110,58 @@ if __name__ == "__main__":
     args = parser.parse_args()
     target_regions = [region for region in args.regions.split(",") if region]
 
-    # Test for valid credentials and get the target account ID
-    sts_client = boto3.client("sts")
+    # Test for valid credentials
+    sts_client = boto3.client("sts", config=boto_config)
     try:
         sts_response = sts_client.get_caller_identity()
-        account_id = sts_response["Account"]
-        print("Analyzing account ID {}".format(account_id))
     except:
         print("No or invalid AWS credentials configured")
         sys.exit(1)
 
+    # Prepare result collection structure
+    run_timestamp = datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    result_collection = {
+        "_metadata": {
+            "account_id": sts_response["Account"],
+            "account_principal": sts_response["Arn"],
+            "denied_list_operations": {},
+            "run_timestamp": run_timestamp
+        },
+        "regions": {}
+    }
+    for region in target_regions:
+        result_collection["regions"][region] = {}
+        result_collection["_metadata"]["denied_list_operations"][region] = []
+
     # Collect resources for each target region
-    resources_collected = {}
+    print("Analyzing account ID {}".format(sts_response["Account"]))
     for region in target_regions:
         resource_types = get_available_resource_types(region)
-        resources_collected[region] = {}
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        # Using a higher number of threads unfortunately leads to API throttling instead of being faster
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
             futures = []
             for resource_type in resource_types:
                 future = executor.submit(get_resources, region, resource_type)
                 futures.append(future)
 
             for future in concurrent.futures.as_completed(futures):
-                resource_type, resources = future.result()
+                resource_type, list_operation_was_denied, resources = future.result()
+                if list_operation_was_denied:
+                    result_collection["_metadata"]["denied_list_operations"][region].append(
+                        resource_type
+                    )
                 if resources:
-                    resources_collected[region][resource_type] = resources
+                    result_collection["regions"][region][resource_type] = resources
+
+        result_collection["_metadata"]["denied_list_operations"][region].sort()
 
     # Write result file
     output_file_name = "resources_{}_{}.json".format(
-        account_id,
-        datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        sts_response["Account"],
+        run_timestamp
     )
     with open(output_file_name, "w") as out_file:
-        json.dump(resources_collected, out_file, indent=2, sort_keys=True)
+        json.dump(result_collection, out_file, indent=2, sort_keys=True)
 
     print("Output file written to {}".format(output_file_name))
