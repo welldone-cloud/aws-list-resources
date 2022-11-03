@@ -23,7 +23,7 @@ def get_available_resource_types(region):
     Examples: AWS::EC2::RouteTable, AWS::IAM::Role, AWS::KMS::Key, etc.
     """
     resource_types = set()
-    cloudformation_client = boto3.client(
+    cloudformation_client = session.client(
         "cloudformation",
         region_name=region,
         config=boto_config
@@ -63,7 +63,7 @@ def get_resources(region, resource_type):
     collected_resources = []
     list_operation_was_denied = False
 
-    cloudcontrol_client = boto3.client(
+    cloudcontrol_client = session.client(
         "cloudcontrol",
         region_name=region,
         config=boto_config
@@ -103,15 +103,25 @@ if __name__ == "__main__":
     # Parse target region(s)
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "--profile",
+        nargs='?',
+        required=False,
+        help="Named profile to use for this command. If not specified, default profile will be used"
+    )
+    parser.add_argument(
         "--regions",
         required=True,
         help="comma-separated list of targeted AWS regions"
     )
     args = parser.parse_args()
+
+    profile = args.profile
     target_regions = [region for region in args.regions.split(",") if region]
 
+    session = boto3.session.Session(profile_name=profile)
+
     # Test for valid credentials
-    sts_client = boto3.client("sts", config=boto_config)
+    sts_client = session.client("sts", config=boto_config)
     try:
         sts_response = sts_client.get_caller_identity()
     except:
