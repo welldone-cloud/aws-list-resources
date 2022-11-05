@@ -6,8 +6,10 @@ resources are written to a JSON output file.
 
 ## Usage
 
-Make sure you have AWS credentials configured for your target account (e.g., using environment variables) and
-run, for example:
+Make sure you have AWS credentials configured for your target account. This can either be done using [environment 
+variables](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html) or by specifying a [named 
+profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) in the optional `--profile` 
+argument. Then run, for example:
 ```bash
 pip install -r requirements.txt
 
@@ -25,7 +27,7 @@ python aws_list_resources.py --regions us-east-1,eu-central-1
   It is further restricted to those resources where the "List" operation does not expect any additional parameters.
 
 * If the IAM user or role you use to run the script does not have permissions to interact with certain AWS services or
-  regions, their resources will be missed. Note that permissions can be restricted on different levels, such as SCPs, 
+  regions, those resources will be missed. Note that permissions can be restricted on different levels, such as SCPs, 
   identity-based polices, etc. The JSON output file will contain a list of resource types where listing was denied.
 
 * The JSON output file will also contain default resources that were created by AWS, independent of whether you 
