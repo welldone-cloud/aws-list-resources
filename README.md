@@ -9,7 +9,7 @@ resources are written to a JSON output file.
 Make sure you have AWS credentials configured for your target account. This can either be done using [environment 
 variables](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html) or by specifying a [named 
 profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) in the optional `--profile` 
-argument. Then run, for example:
+argument. Read-only IAM permissions are sufficient. Then run, for example:
 ```bash
 pip install -r requirements.txt
 
@@ -34,8 +34,9 @@ python aws_list_resources.py --regions us-east-1,eu-central-1
   actually used the service or not.
 
 
-## Example output file (truncated)
+## Example output file
 
+Truncated example JSON output file:
 ```json
 {
   "_metadata": {
