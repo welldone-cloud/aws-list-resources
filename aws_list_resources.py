@@ -89,6 +89,11 @@ def get_resources(boto_session, region, resource_type):
 
 
 if __name__ == "__main__":
+    # Check runtime environment
+    if sys.version_info[0] < 3:
+        print("Python version 3 required")
+        sys.exit(1)
+
     # Parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument(
