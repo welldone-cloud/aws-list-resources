@@ -1,7 +1,11 @@
 # AWS list resources
 
 Uses the AWS Cloud Control API to list resources that are present in a given AWS account and region(s). Discovered
-resources are written to a JSON output file.
+resources are written to a JSON output file. 
+
+See the accompanying blog posts 
+[here](https://medium.com/@michael.kirchner/how-to-list-all-resources-in-your-aws-account-c3f18061f71b) and 
+[here](https://medium.com/@michael.kirchner/exploring-aws-resource-explorer-825498b5307d).
 
 
 ## Usage
