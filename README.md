@@ -1,9 +1,7 @@
 # AWS list resources
 
 Uses the AWS Cloud Control API to list resources that are present in a given AWS account and region(s). Discovered
-resources are written to a JSON output file. 
-
-See the accompanying blog posts 
+resources are written to a JSON output file. See the accompanying blog posts 
 [here](https://medium.com/@michael.kirchner/how-to-list-all-resources-in-your-aws-account-c3f18061f71b) and 
 [here](https://medium.com/@michael.kirchner/exploring-aws-resource-explorer-825498b5307d).
 
@@ -13,7 +11,12 @@ See the accompanying blog posts
 Make sure you have AWS credentials configured for your target account. This can either be done using [environment 
 variables](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html) or by specifying a [named 
 profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) in the optional `--profile` 
-argument. Read-only IAM permissions are sufficient. Then run, for example:
+argument. Read-only IAM permissions are sufficient. 
+
+When running the script, it is recommended to include the us-east-1 region in addition to the region(s) that your workload uses primarily. This ensures that resources of global AWS services are captured as well.
+
+Example run:
+
 ```bash
 pip install -r requirements.txt
 
