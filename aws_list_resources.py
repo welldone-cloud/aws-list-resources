@@ -9,12 +9,7 @@ import json
 import sys
 
 
-boto_config = botocore.config.Config(
-    retries={
-        "total_max_attempts": 5,
-        "mode": "standard"
-    }
-)
+boto_config = botocore.config.Config(retries={"total_max_attempts": 5, "mode": "standard"})
 
 
 def get_available_resource_types(boto_session, region):
@@ -32,9 +27,7 @@ def get_available_resource_types(boto_session, region):
             "Visibility": "PUBLIC",
             "ProvisioningType": provisioning_type,
             "DeprecatedStatus": "LIVE",
-            "Filters": {
-                "Category": "AWS_TYPES"
-            }
+            "Filters": {"Category": "AWS_TYPES"},
         }
         while True:
             cloudformation_response = cloudformation_client.list_types(**call_params)
@@ -96,18 +89,8 @@ if __name__ == "__main__":
 
     # Parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--regions",
-        required=True,
-        nargs=1,
-        help="comma-separated list of targeted AWS regions"
-    )
-    parser.add_argument(
-        "--profile",
-        required=False,
-        nargs=1,
-        help="optional named profile to use when running the command"
-    )
+    parser.add_argument("--regions", required=True, nargs=1, help="comma-separated list of targeted AWS regions")
+    parser.add_argument("--profile", required=False, nargs=1, help="optional named AWS profile to use")
 
     args = parser.parse_args()
     target_regions = [region for region in args.regions[0].split(",") if region]
@@ -129,9 +112,9 @@ if __name__ == "__main__":
             "account_id": sts_response["Account"],
             "account_principal": sts_response["Arn"],
             "denied_list_operations": {},
-            "run_timestamp": run_timestamp
+            "run_timestamp": run_timestamp,
         },
-        "regions": {}
+        "regions": {},
     }
     for region in target_regions:
         result_collection["regions"][region] = {}

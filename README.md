@@ -1,4 +1,4 @@
-# AWS list resources
+# aws-list-resources
 
 Uses the AWS Cloud Control API to list resources that are present in a given AWS account and region(s). Discovered
 resources are written to a JSON output file. See the accompanying blog posts 
@@ -13,7 +13,7 @@ variables](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvar
 profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) in the optional `--profile` 
 argument. Read-only IAM permissions are sufficient. 
 
-When running the script, it is recommended to include the us-east-1 region in addition to the region(s) that your workload uses primarily. This ensures that resources of global AWS services are captured as well.
+When running the script, it is recommended to include the `us-east-1` region in addition to the region(s) that your workload uses primarily. This ensures that resources of global AWS services are captured as well.
 
 Example run:
 
@@ -27,11 +27,11 @@ python aws_list_resources.py --regions us-east-1,eu-central-1
 ## Notes
 
 * The script will only be able to discover resources that are currently supported by the AWS Cloud Control API and
-  offer support for the "List" operation:
+  offer support for the `List` operation:
 
   https://docs.aws.amazon.com/cloudcontrolapi/latest/userguide/supported-resources.html
   
-  It is further restricted to those resources where the "List" operation does not expect any additional parameters.
+  It is further restricted to those resources where the `List` operation does not expect any additional parameters.
 
 * If the IAM user or role you use to run the script does not have permissions to interact with certain AWS services or
   regions, those resources will be missed. Note that permissions can be restricted on different levels, such as SCPs, 
