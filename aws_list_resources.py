@@ -6,19 +6,22 @@ import botocore.config
 import concurrent.futures
 import datetime
 import json
+import random
 import sys
 
 
-boto_config = botocore.config.Config(retries={"total_max_attempts": 5, "mode": "standard"})
+BOTO_CONFIG = botocore.config.Config(retries={"total_max_attempts": 5, "mode": "standard"})
+
+MAX_THREADS_FOR_REGIONS = 8
 
 
-def get_available_resource_types(boto_session, region):
+def get_supported_resource_types(region):
     """
     Returns a list of resource types that are supported in a region by querying the CloudFormation registry.
     Examples: AWS::EC2::RouteTable, AWS::IAM::Role, AWS::KMS::Key, etc.
     """
     resource_types = set()
-    cloudformation_client = boto_session.client("cloudformation", region_name=region, config=boto_config)
+    cloudformation_client = boto_session.client("cloudformation", region_name=region, config=BOTO_CONFIG)
 
     provisioning_types = ("FULLY_MUTABLE", "IMMUTABLE")
     for provisioning_type in provisioning_types:
@@ -38,10 +41,10 @@ def get_available_resource_types(boto_session, region):
             except KeyError:
                 break
 
-    return sorted(resource_types)
+    return list(resource_types)
 
 
-def get_resources(boto_session, region, resource_type):
+def get_resources(region, resource_type):
     """
     Returns a list of resources of the given resource type discovered in the given region. Uses the "List" operation
     of the Cloud Control API. If the API call failed, an empty list is returned. If the API call likely failed because
@@ -50,7 +53,7 @@ def get_resources(boto_session, region, resource_type):
     print("{}, {}".format(region, resource_type))
     collected_resources = []
     list_operation_was_denied = False
-    cloudcontrol_client = boto_session.client("cloudcontrol", region_name=region, config=boto_config)
+    cloudcontrol_client = boto_session.client("cloudcontrol", region_name=region, config=BOTO_CONFIG)
 
     call_params = {"TypeName": resource_type}
     try:
@@ -81,6 +84,37 @@ def get_resources(boto_session, region, resource_type):
     return (resource_type, list_operation_was_denied, sorted(collected_resources))
 
 
+def analyze_region(region):
+    """
+    Lists all resources of supported resources types in the given region and adds them to the result collection.
+    """
+    # Shuffle the list of supported resource types to avoid API throttling (e.g., avoid listing all resources of
+    # the EC2 API namespace within only a few seconds, but spread requests out)
+    resource_types = get_supported_resource_types(region)
+    random.shuffle(resource_types)
+
+    # Use threads to list the resources of each resource type. Using a higher number of threads here unfortunately
+    # leads to API throttling instead of being faster. Also keep in mind that each region is already analyzed by a
+    # separate thread, so this is only an in-region acceleration.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        futures = []
+        for resource_type in resource_types:
+            future = executor.submit(get_resources, region, resource_type)
+            futures.append(future)
+
+        for future in concurrent.futures.as_completed(futures):
+            resource_type, list_operation_was_denied, resources = future.result()
+            if list_operation_was_denied:
+                result_collection["_metadata"]["denied_list_operations"][region].append(resource_type)
+            if resources:
+                if only_show_counts:
+                    result_collection["regions"][region][resource_type] = len(resources)
+                else:
+                    result_collection["regions"][region][resource_type] = resources
+
+    result_collection["_metadata"]["denied_list_operations"][region].sort()
+
+
 if __name__ == "__main__":
     # Check runtime environment
     if sys.version_info[0] < 3:
@@ -106,7 +140,7 @@ if __name__ == "__main__":
     boto_session = boto3.session.Session(profile_name=profile)
 
     # Test for valid credentials
-    sts_client = boto_session.client("sts", config=boto_config)
+    sts_client = boto_session.client("sts", config=BOTO_CONFIG)
     try:
         sts_response = sts_client.get_caller_identity()
     except:
@@ -128,29 +162,11 @@ if __name__ == "__main__":
         result_collection["regions"][region] = {}
         result_collection["_metadata"]["denied_list_operations"][region] = []
 
-    # Collect resources for each target region
+    # Collect resources using a separate thread for each target region
     print("Analyzing account ID {}".format(sts_response["Account"]))
-    for region in target_regions:
-        resource_types = get_available_resource_types(boto_session, region)
-
-        # Using a higher number of threads unfortunately leads to API throttling instead of being faster
-        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-            futures = []
-            for resource_type in resource_types:
-                future = executor.submit(get_resources, boto_session, region, resource_type)
-                futures.append(future)
-
-            for future in concurrent.futures.as_completed(futures):
-                resource_type, list_operation_was_denied, resources = future.result()
-                if list_operation_was_denied:
-                    result_collection["_metadata"]["denied_list_operations"][region].append(resource_type)
-                if resources:
-                    if only_show_counts:
-                        result_collection["regions"][region][resource_type] = len(resources)
-                    else:
-                        result_collection["regions"][region][resource_type] = resources
-
-        result_collection["_metadata"]["denied_list_operations"][region].sort()
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_THREADS_FOR_REGIONS) as executor:
+        for region in target_regions:
+            executor.submit(analyze_region, region)
 
     # Write result file
     output_file_name = "resources_{}_{}.json".format(sts_response["Account"], run_timestamp)

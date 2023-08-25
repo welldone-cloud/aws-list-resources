@@ -15,7 +15,7 @@ argument. Read-only IAM permissions are sufficient.
 
 When running the script, it is recommended to include the `us-east-1` region in addition to the region(s) that your workload uses primarily. This ensures that resources of global AWS services are captured as well.
 
-Example run:
+Example invocation:
 
 ```bash
 pip install -r requirements.txt
