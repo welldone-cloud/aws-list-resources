@@ -89,12 +89,20 @@ if __name__ == "__main__":
 
     # Parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("--regions", required=True, nargs=1, help="comma-separated list of targeted AWS regions")
+    parser.add_argument(
+        "--only-show-counts",
+        required=False,
+        default=False,
+        action="store_true",
+        help="only show resource counts instead of listing their full identifiers",
+    )
     parser.add_argument("--profile", required=False, nargs=1, help="optional named AWS profile to use")
+    parser.add_argument("--regions", required=True, nargs=1, help="comma-separated list of targeted AWS regions")
 
     args = parser.parse_args()
-    target_regions = [region for region in args.regions[0].split(",") if region]
+    only_show_counts = args.only_show_counts
     profile = args.profile[0] if args.profile else None
+    target_regions = [region for region in args.regions[0].split(",") if region]
     boto_session = boto3.session.Session(profile_name=profile)
 
     # Test for valid credentials
@@ -137,7 +145,10 @@ if __name__ == "__main__":
                 if list_operation_was_denied:
                     result_collection["_metadata"]["denied_list_operations"][region].append(resource_type)
                 if resources:
-                    result_collection["regions"][region][resource_type] = resources
+                    if only_show_counts:
+                        result_collection["regions"][region][resource_type] = len(resources)
+                    else:
+                        result_collection["regions"][region][resource_type] = resources
 
         result_collection["_metadata"]["denied_list_operations"][region].sort()
 

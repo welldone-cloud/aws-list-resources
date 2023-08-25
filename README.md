@@ -24,6 +24,15 @@ python aws_list_resources.py --regions us-east-1,eu-central-1
 ```
 
 
+## Supported arguments
+
+```
+--only-show-counts  only show resource counts instead of listing their full identifiers
+--profile PROFILE   optional named AWS profile to use
+--regions REGIONS   comma-separated list of targeted AWS regions
+```
+
+
 ## Notes
 
 * The script will only be able to discover resources that are currently supported by the AWS Cloud Control API and
