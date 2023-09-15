@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import bisect
 import boto3
 import botocore.config
 import concurrent.futures
@@ -30,23 +31,17 @@ def get_supported_resource_types(cloudformation_client):
     """
     resource_types = set()
 
-    provisioning_types = ("FULLY_MUTABLE", "IMMUTABLE")
-    for provisioning_type in provisioning_types:
-        call_params = {
-            "Type": "RESOURCE",
-            "Visibility": "PUBLIC",
-            "ProvisioningType": provisioning_type,
-            "DeprecatedStatus": "LIVE",
-            "Filters": {"Category": "AWS_TYPES"},
-        }
-        while True:
-            cloudformation_response = cloudformation_client.list_types(**call_params)
-            for type in cloudformation_response["TypeSummaries"]:
+    list_types_paginator = cloudformation_client.get_paginator("list_types")
+    for provisioning_type in ("FULLY_MUTABLE", "IMMUTABLE"):
+        for list_types_page in list_types_paginator.paginate(
+            Type="RESOURCE",
+            Visibility="PUBLIC",
+            ProvisioningType=provisioning_type,
+            DeprecatedStatus="LIVE",
+            Filters={"Category": "AWS_TYPES"},
+        ):
+            for type in list_types_page["TypeSummaries"]:
                 resource_types.add(type["TypeName"])
-            try:
-                call_params["NextToken"] = cloudformation_response["NextToken"]
-            except KeyError:
-                break
 
     return list(resource_types)
 
@@ -60,16 +55,11 @@ def get_resources(cloudcontrol_client, resource_type):
     print("{}, {}".format(cloudcontrol_client._client_config.region_name, resource_type))
     collected_resources = []
 
-    call_params = {"TypeName": resource_type}
+    list_resources_paginator = cloudcontrol_client.get_paginator("list_resources")
     try:
-        while True:
-            cloudcontrol_response = cloudcontrol_client.list_resources(**call_params)
-            for resource in cloudcontrol_response["ResourceDescriptions"]:
+        for list_resources_page in list_resources_paginator.paginate(TypeName=resource_type):
+            for resource in list_resources_page["ResourceDescriptions"]:
                 collected_resources.append(resource["Identifier"])
-            try:
-                call_params["NextToken"] = cloudcontrol_response["NextToken"]
-            except KeyError:
-                break
 
     except Exception as ex:
         # There is unfortunately a long and non-uniform list of exceptions that can occur with the Cloud Control API,
@@ -92,15 +82,15 @@ def analyze_region(region):
     Lists all resources of resources types that are supported in the region and adds them to the result collection.
     """
     boto_session = boto3.session.Session(profile_name=profile, region_name=region)
-    cloudformation_client = boto_session.client("cloudformation", config=BOTO_CONFIG)
-    cloudcontrol_client = boto_session.client("cloudcontrol", config=BOTO_CONFIG)
 
     # Create a shuffled list of resource types that are supported in the region. Shuffling avoids API throttling when
     # listing the resources (e.g., avoid querying all resources of the EC2 API namespace within only a few seconds)
+    cloudformation_client = boto_session.client("cloudformation", config=BOTO_CONFIG)
     resource_types = get_supported_resource_types(cloudformation_client)
     random.shuffle(resource_types)
 
     # List the resources of each resource type
+    cloudcontrol_client = boto_session.client("cloudcontrol", config=BOTO_CONFIG)
     for resource_type in resource_types:
         try:
             resources = get_resources(cloudcontrol_client, resource_type)
@@ -111,8 +101,7 @@ def analyze_region(region):
                     result_collection["regions"][region][resource_type] = resources
 
         except DeniedListOperationException:
-            result_collection["_metadata"]["denied_list_operations"][region].append(resource_type)
-            result_collection["_metadata"]["denied_list_operations"][region].sort()
+            bisect.insort(result_collection["_metadata"]["denied_list_operations"][region], resource_type)
 
 
 if __name__ == "__main__":
