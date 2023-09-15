@@ -15,13 +15,20 @@ BOTO_CONFIG = botocore.config.Config(retries={"total_max_attempts": 5, "mode": "
 MAX_THREADS_FOR_REGIONS = 8
 
 
-def get_supported_resource_types(region):
+class DeniedListOperationException(Exception):
+    """
+    Raised when the "List" operation of the Cloud Control API failed due to permission errors.
+    """
+
+    pass
+
+
+def get_supported_resource_types(cloudformation_client):
     """
     Returns a list of resource types that are supported in a region by querying the CloudFormation registry.
     Examples: AWS::EC2::RouteTable, AWS::IAM::Role, AWS::KMS::Key, etc.
     """
     resource_types = set()
-    cloudformation_client = boto_session.client("cloudformation", region_name=region, config=BOTO_CONFIG)
 
     provisioning_types = ("FULLY_MUTABLE", "IMMUTABLE")
     for provisioning_type in provisioning_types:
@@ -44,16 +51,14 @@ def get_supported_resource_types(region):
     return list(resource_types)
 
 
-def get_resources(region, resource_type):
+def get_resources(cloudcontrol_client, resource_type):
     """
-    Returns a list of resources of the given resource type discovered in the given region. Uses the "List" operation
-    of the Cloud Control API. If the API call failed, an empty list is returned. If the API call likely failed because
-    of permission issues, an additional flag is set in the return value.
+    Returns a list of discovered resources of the given resource type. Uses the "List" operation of the Cloud Control
+    API. If the API call failed, an empty list is returned. If the API call likely failed because of permission
+    issues, a DeniedListOperationException is raised.
     """
-    print("{}, {}".format(region, resource_type))
+    print("{}, {}".format(cloudcontrol_client._client_config.region_name, resource_type))
     collected_resources = []
-    list_operation_was_denied = False
-    cloudcontrol_client = boto_session.client("cloudcontrol", region_name=region, config=BOTO_CONFIG)
 
     call_params = {"TypeName": resource_type}
     try:
@@ -74,45 +79,40 @@ def get_resources(region, resource_type):
         # HandlerInternalFailureException, AccessDeniedException, AuthorizationError, etc. They are thus handled by
         # this broad except clause. The end result is the same: resources for this resource type cannot be listed.
 
-        # Flag when the "List" operation was likely denied due to a lack of permissions
         exception_msg = str(ex).lower()
         for keyword in ("denied", "authorization", "authorized"):
             if keyword in exception_msg:
-                list_operation_was_denied = True
-                break
+                raise DeniedListOperationException()
 
-    return (resource_type, list_operation_was_denied, sorted(collected_resources))
+    return sorted(collected_resources)
 
 
 def analyze_region(region):
     """
-    Lists all resources of supported resources types in the given region and adds them to the result collection.
+    Lists all resources of resources types that are supported in the region and adds them to the result collection.
     """
-    # Shuffle the list of supported resource types to avoid API throttling (e.g., avoid listing all resources of
-    # the EC2 API namespace within only a few seconds, but spread requests out)
-    resource_types = get_supported_resource_types(region)
+    boto_session = boto3.session.Session(profile_name=profile, region_name=region)
+    cloudformation_client = boto_session.client("cloudformation", config=BOTO_CONFIG)
+    cloudcontrol_client = boto_session.client("cloudcontrol", config=BOTO_CONFIG)
+
+    # Create a shuffled list of resource types that are supported in the region. Shuffling avoids API throttling when
+    # listing the resources (e.g., avoid querying all resources of the EC2 API namespace within only a few seconds)
+    resource_types = get_supported_resource_types(cloudformation_client)
     random.shuffle(resource_types)
 
-    # Use threads to list the resources of each resource type. Using a higher number of threads here unfortunately
-    # leads to API throttling instead of being faster. Also keep in mind that each region is already analyzed by a
-    # separate thread, so this is only an in-region acceleration.
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-        futures = []
-        for resource_type in resource_types:
-            future = executor.submit(get_resources, region, resource_type)
-            futures.append(future)
-
-        for future in concurrent.futures.as_completed(futures):
-            resource_type, list_operation_was_denied, resources = future.result()
-            if list_operation_was_denied:
-                result_collection["_metadata"]["denied_list_operations"][region].append(resource_type)
+    # List the resources of each resource type
+    for resource_type in resource_types:
+        try:
+            resources = get_resources(cloudcontrol_client, resource_type)
             if resources:
                 if only_show_counts:
                     result_collection["regions"][region][resource_type] = len(resources)
                 else:
                     result_collection["regions"][region][resource_type] = resources
 
-    result_collection["_metadata"]["denied_list_operations"][region].sort()
+        except DeniedListOperationException:
+            result_collection["_metadata"]["denied_list_operations"][region].append(resource_type)
+            result_collection["_metadata"]["denied_list_operations"][region].sort()
 
 
 if __name__ == "__main__":
@@ -131,15 +131,15 @@ if __name__ == "__main__":
         help="only show resource counts instead of listing their full identifiers",
     )
     parser.add_argument("--profile", required=False, nargs=1, help="optional named AWS profile to use")
-    parser.add_argument("--regions", required=True, nargs=1, help="comma-separated list of targeted AWS regions")
+    parser.add_argument("--regions", required=True, nargs=1, help="comma-separated list of target AWS regions")
 
     args = parser.parse_args()
     only_show_counts = args.only_show_counts
     profile = args.profile[0] if args.profile else None
     target_regions = [region for region in args.regions[0].split(",") if region]
-    boto_session = boto3.session.Session(profile_name=profile)
 
     # Test for valid credentials
+    boto_session = boto3.session.Session(profile_name=profile)
     sts_client = boto_session.client("sts", config=BOTO_CONFIG)
     try:
         sts_response = sts_client.get_caller_identity()

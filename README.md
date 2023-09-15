@@ -29,7 +29,7 @@ python aws_list_resources.py --regions us-east-1,eu-central-1
 ```
 --only-show-counts  only show resource counts instead of listing their full identifiers
 --profile PROFILE   optional named AWS profile to use
---regions REGIONS   comma-separated list of targeted AWS regions
+--regions REGIONS   comma-separated list of target AWS regions
 ```
 
 
