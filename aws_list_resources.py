@@ -11,17 +11,13 @@ import random
 import sys
 
 
-BOTO_CONFIG = botocore.config.Config(retries={"total_max_attempts": 5, "mode": "standard"})
-
-MAX_THREADS_FOR_REGIONS = 8
+BOTO_CLIENT_CONFIG = botocore.config.Config(retries={"total_max_attempts": 5, "mode": "standard"})
 
 
 class DeniedListOperationException(Exception):
     """
     Raised when the "List" operation of the Cloud Control API failed due to permission errors.
     """
-
-    pass
 
 
 def get_supported_resource_types(cloudformation_client):
@@ -79,18 +75,19 @@ def get_resources(cloudcontrol_client, resource_type):
 
 def analyze_region(region):
     """
-    Lists all resources of resources types that are supported in the region and adds them to the result collection.
+    Lists all resources of resources types that are supported in the given region and adds them to the result
+    collection.
     """
     boto_session = boto3.session.Session(profile_name=profile, region_name=region)
 
     # Create a shuffled list of resource types that are supported in the region. Shuffling avoids API throttling when
     # listing the resources (e.g., avoid querying all resources of the EC2 API namespace within only a few seconds)
-    cloudformation_client = boto_session.client("cloudformation", config=BOTO_CONFIG)
+    cloudformation_client = boto_session.client("cloudformation", config=BOTO_CLIENT_CONFIG)
     resource_types = get_supported_resource_types(cloudformation_client)
     random.shuffle(resource_types)
 
     # List the resources of each resource type
-    cloudcontrol_client = boto_session.client("cloudcontrol", config=BOTO_CONFIG)
+    cloudcontrol_client = boto_session.client("cloudcontrol", config=BOTO_CLIENT_CONFIG)
     for resource_type in resource_types:
         try:
             resources = get_resources(cloudcontrol_client, resource_type)
@@ -127,9 +124,10 @@ if __name__ == "__main__":
     profile = args.profile[0] if args.profile else None
     target_regions = [region for region in args.regions[0].split(",") if region]
 
-    # Test for valid credentials
     boto_session = boto3.session.Session(profile_name=profile)
-    sts_client = boto_session.client("sts", config=BOTO_CONFIG)
+
+    # Test for valid credentials
+    sts_client = boto_session.client("sts", config=BOTO_CLIENT_CONFIG)
     try:
         sts_response = sts_client.get_caller_identity()
     except:
@@ -142,18 +140,15 @@ if __name__ == "__main__":
         "_metadata": {
             "account_id": sts_response["Account"],
             "account_principal": sts_response["Arn"],
-            "denied_list_operations": {},
+            "denied_list_operations": {region: [] for region in target_regions},
             "run_timestamp": run_timestamp,
         },
-        "regions": {},
+        "regions": {region: {} for region in target_regions},
     }
-    for region in target_regions:
-        result_collection["regions"][region] = {}
-        result_collection["_metadata"]["denied_list_operations"][region] = []
 
-    # Collect resources using a separate thread for each target region
+    # Collect resources using one thread for each target region
     print("Analyzing account ID {}".format(sts_response["Account"]))
-    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_THREADS_FOR_REGIONS) as executor:
+    with concurrent.futures.ThreadPoolExecutor() as executor:
         for region in target_regions:
             executor.submit(analyze_region, region)
 
