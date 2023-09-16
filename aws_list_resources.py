@@ -70,7 +70,7 @@ def get_resources(cloudcontrol_client, resource_type):
             if keyword in exception_msg:
                 raise DeniedListOperationException()
 
-    return sorted(collected_resources)
+    return collected_resources
 
 
 def analyze_region(region):
@@ -95,7 +95,7 @@ def analyze_region(region):
                 if only_show_counts:
                     result_collection["regions"][region][resource_type] = len(resources)
                 else:
-                    result_collection["regions"][region][resource_type] = resources
+                    result_collection["regions"][region][resource_type] = sorted(resources)
 
         except DeniedListOperationException:
             bisect.insort(result_collection["_metadata"]["denied_list_operations"][region], resource_type)
