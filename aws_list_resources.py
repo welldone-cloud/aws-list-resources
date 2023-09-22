@@ -7,8 +7,8 @@ import botocore.config
 import concurrent.futures
 import datetime
 import json
-import random
 import sys
+import zlib
 
 
 BOTO_CLIENT_CONFIG = botocore.config.Config(retries={"total_max_attempts": 5, "mode": "standard"})
@@ -84,7 +84,7 @@ def analyze_region(region):
     # listing the resources (e.g., avoid querying all resources of the EC2 API namespace within only a few seconds)
     cloudformation_client = boto_session.client("cloudformation", config=BOTO_CLIENT_CONFIG)
     resource_types = get_supported_resource_types(cloudformation_client)
-    random.shuffle(resource_types)
+    resource_types.sort(key=lambda resource_type: zlib.crc32("{},{}".format(resource_type, region).encode()))
 
     # List the resources of each resource type
     cloudcontrol_client = boto_session.client("cloudcontrol", config=BOTO_CLIENT_CONFIG)
