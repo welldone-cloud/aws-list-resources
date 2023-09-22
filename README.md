@@ -49,6 +49,8 @@ python aws_list_resources.py --regions us-east-1,eu-central-1
 * The JSON output file will also contain default resources that were created by AWS, independent of whether you 
   actually used the service or not.
 
+* To speed up execution of the script, run it within an AWS region (e.g., on EC2 or CloudShell) instead of your local machine.
+
 
 ## Example output file
 
