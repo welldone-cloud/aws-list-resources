@@ -83,7 +83,13 @@ def analyze_region(region):
     # Create a shuffled list of resource types that are supported in the region. Shuffling avoids API throttling when
     # listing the resources (e.g., avoid querying all resources of the EC2 API namespace within only a few seconds)
     cloudformation_client = boto_session.client("cloudformation", config=BOTO_CLIENT_CONFIG)
-    resource_types = get_supported_resource_types(cloudformation_client)
+    try:
+        resource_types = get_supported_resource_types(cloudformation_client)
+    except Exception as ex:
+        msg = "Error: unable to list resource types for region {}: {}".format(region, str(ex))
+        result_collection["_metadata"]["denied_list_operations"][region].append(msg)
+        print(msg)
+        return
     resource_types.sort(key=lambda resource_type: zlib.crc32("{},{}".format(resource_type, region).encode()))
 
     # List the resources of each resource type
