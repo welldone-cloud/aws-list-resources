@@ -10,7 +10,7 @@ resources are written to a JSON output file. See the accompanying blog posts
 
 Make sure you have AWS credentials configured for your target account. This can either be done using [environment 
 variables](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html) or by specifying a [named 
-profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) in the optional `--profile` 
+profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html) in the optional `--profile` 
 argument. Read-only IAM permissions are sufficient. 
 
 When running the script, it is recommended to include the `us-east-1` region in addition to the region(s) that your workload uses primarily. This ensures that resources of global AWS services are captured as well.
