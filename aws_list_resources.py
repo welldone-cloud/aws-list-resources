@@ -7,6 +7,7 @@ import botocore.config
 import concurrent.futures
 import datetime
 import json
+import os
 import sys
 import zlib
 
@@ -140,6 +141,13 @@ if __name__ == "__main__":
         print("No or invalid AWS credentials configured")
         sys.exit(1)
 
+    # Prepare results directory
+    results_directory = os.path.join(os.path.relpath(os.path.dirname(__file__)), "results")
+    try:
+        os.mkdir(results_directory)
+    except FileExistsError:
+        pass
+
     # Prepare result collection structure
     run_timestamp = datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S")
     result_collection = {
@@ -159,8 +167,10 @@ if __name__ == "__main__":
             executor.submit(analyze_region, region)
 
     # Write result file
-    output_file_name = "resources_{}_{}.json".format(sts_response["Account"], run_timestamp)
-    with open(output_file_name, "w") as out_file:
+    result_file = os.path.join(
+        results_directory, "resources_{}_{}.json".format(sts_response["Account"], run_timestamp)
+    )
+    with open(result_file, "w") as out_file:
         json.dump(result_collection, out_file, indent=2, sort_keys=True)
 
-    print("Output file written to {}".format(output_file_name))
+    print("Output file written to {}".format(result_file))
