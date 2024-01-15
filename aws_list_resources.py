@@ -176,8 +176,8 @@ if __name__ == "__main__":
                 # Submit a task to the executor for each resource type
                 futures.append(executor.submit(analyze_resource, boto_session, region, resource_type, result_collection, only_show_counts))
     
-        # Wait for all tasks to complete
-        concurrent.futures.wait(futures)
+    # Wait for all tasks to complete
+    concurrent.futures.wait(futures)
 
     # Write result file
     result_file = os.path.join(
