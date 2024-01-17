@@ -155,6 +155,7 @@ if __name__ == "__main__":
             "account_id": sts_response["Account"],
             "account_principal": sts_response["Arn"],
             "denied_list_operations": {region: [] for region in target_regions},
+            "invocation": " ".join(sys.argv),
             "run_timestamp": run_timestamp,
         },
         "regions": {region: {} for region in target_regions},
