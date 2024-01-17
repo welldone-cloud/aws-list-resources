@@ -6,10 +6,10 @@ import boto3
 import botocore.config
 import concurrent.futures
 import datetime
+import fnmatch
 import json
 import os
 import sys
-import zlib
 
 
 AWS_DEFAULT_REGION = "us-east-1"
@@ -74,28 +74,31 @@ def get_resources(cloudcontrol_client, resource_type):
 
 def analyze_region(region):
     """
-    Lists all resources of resources types that are supported in the given region and adds them to the result
-    collection.
+    Lists all resource types that are supported in the given region, lists their respective resources (if not filtered)
+    and adds them to the result collection.
     """
     boto_session = boto3.session.Session(profile_name=profile, region_name=region)
 
     print("Reading supported resources types for region {}".format(region))
     cloudformation_client = boto_session.client("cloudformation", config=BOTO_CLIENT_CONFIG)
     try:
-        resource_types = get_supported_resource_types(cloudformation_client)
+        resource_types_supported = get_supported_resource_types(cloudformation_client)
     except Exception as ex:
         msg = "Error: unable to list resource types for region {}: {}".format(region, str(ex))
         result_collection["_metadata"]["denied_list_operations"][region].append(msg)
         print(msg)
         return
 
-    # Shuffle the list of supported resource types, which avoids API throttling when listing the resources
-    # (e.g., avoid querying all resources of the EC2 API namespace within only a few seconds)
-    resource_types.sort(key=lambda resource_type: zlib.crc32("{},{}".format(resource_type, region).encode()))
+    # Filter included and excluded resource types
+    resource_types_filtered = set()
+    for pattern in include_resource_types:
+        resource_types_filtered.update(fnmatch.filter(resource_types_supported, pattern))
+    for pattern in exclude_resource_types:
+        resource_types_filtered.difference_update(fnmatch.filter(resource_types_supported, pattern))
 
-    # List the resources of each resource type
+    # List resources for each resource type
     cloudcontrol_client = boto_session.client("cloudcontrol", config=BOTO_CLIENT_CONFIG)
-    for resource_type in resource_types:
+    for resource_type in resource_types_filtered:
         try:
             print("Listing {}, region {}".format(resource_type, region))
             resources = get_resources(cloudcontrol_client, resource_type)
@@ -118,6 +121,20 @@ if __name__ == "__main__":
     # Parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "--exclude-resource-types",
+        required=False,
+        default=[""],
+        nargs=1,
+        help="do not list the specified comma-separated resource types (supports wildcards)",
+    )
+    parser.add_argument(
+        "--include-resource-types",
+        required=False,
+        default=["*"],
+        nargs=1,
+        help="only list the specified comma-separated resource types (supports wildcards)",
+    )
+    parser.add_argument(
         "--only-show-counts",
         required=False,
         default=False,
@@ -130,6 +147,8 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    exclude_resource_types = [value for value in args.exclude_resource_types[0].split(",") if value]
+    include_resource_types = [value for value in args.include_resource_types[0].split(",") if value]
     only_show_counts = args.only_show_counts
     profile = args.profile[0] if args.profile else None
 
@@ -161,7 +180,7 @@ if __name__ == "__main__":
                 sys.exit(1)
 
     # Prepare results directory
-    results_directory = os.path.join(os.path.relpath(os.path.dirname(__file__)), "results")
+    results_directory = os.path.join(os.path.relpath(os.path.dirname(__file__) or "."), "results")
     try:
         os.mkdir(results_directory)
     except FileExistsError:

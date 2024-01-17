@@ -1,19 +1,13 @@
 # aws-list-resources
 
-Uses the AWS Cloud Control API to list resources that are present in a given AWS account and region(s). Discovered
-resources are written to a JSON output file. See the accompanying blog posts 
-[here](https://medium.com/@michael.kirchner/how-to-list-all-resources-in-your-aws-account-c3f18061f71b) and 
-[here](https://medium.com/@michael.kirchner/exploring-aws-resource-explorer-825498b5307d).
+Uses the AWS Cloud Control API to list resources that are present in a given AWS account and region(s). Discovered resources are written to a JSON output file. See the accompanying blog posts [here](https://medium.com/@michael.kirchner/how-to-list-all-resources-in-your-aws-account-c3f18061f71b) and [here](https://medium.com/@michael.kirchner/exploring-aws-resource-explorer-825498b5307d).
 
 
 ## Usage
 
-Make sure you have AWS credentials configured for your target account. This can either be done using [environment 
-variables](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html) or by specifying a [named 
-profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html) in the optional `--profile` 
-argument. Read-only IAM permissions are sufficient. 
+Make sure you have AWS credentials configured for your target account. This can either be done using [environment variables](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html) or by specifying a [named profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html) in the optional `--profile` argument. Read-only IAM permissions are sufficient. 
 
-If you run the script against specific regions, it is recommended to include the `us-east-1` region as well. This ensures that resources of global AWS services are captured as well.
+If you run the script against specific regions, it is recommended to also include the `us-east-1` region. This ensures that resources of global AWS services are captured as well.
 
 Example invocations:
 
@@ -23,33 +17,33 @@ pip install -r requirements.txt
 python aws_list_resources.py --regions us-east-1,eu-central-1
 
 python aws_list_resources.py --regions ALL
+
+python aws_list_resources.py --regions ALL --include-resource-types AWS::EC2::*,AWS::DynamoDB::* --exclude-resource-types AWS::EC2::DHCPOptions,AWS::EC2::VPCGatewayAttachment
 ```
 
 
 ## Supported arguments
 
 ```
---only-show-counts  only show resource counts instead of listing their full identifiers
---profile PROFILE   optional named AWS profile to use
---regions REGIONS   comma-separated list of target AWS regions or 'ALL'
+--exclude-resource-types  do not list the specified comma-separated resource types (supports wildcards)
+--include-resource-types  only list the specified comma-separated resource types (supports wildcards)
+--only-show-counts        only show resource counts instead of listing their full identifiers
+--profile PROFILE         optional named AWS profile to use
+--regions REGIONS         comma-separated list of target AWS regions or 'ALL'
 ```
 
 
 ## Notes
 
-* The script will only be able to discover resources that are currently supported by the AWS Cloud Control API and
-  offer support for the `List` operation:
+* The script will only be able to discover resources that are currently supported by the AWS Cloud Control API and offer support for the `List` operation:
 
   https://docs.aws.amazon.com/cloudcontrolapi/latest/userguide/supported-resources.html
   
   It is further restricted to those resources where the `List` operation does not expect any additional parameters.
 
-* If the IAM user or role you use to run the script does not have permissions to interact with certain AWS services or
-  regions, those resources will be missed. Note that permissions can be restricted on different levels, such as SCPs, 
-  identity-based polices, etc. The JSON output file will contain a list of resource types where listing was denied.
+* If the IAM user or role you use to run the script does not have permissions to interact with certain AWS services or regions, those resources will be missed. Note that permissions can be restricted on different levels, such as SCPs, identity-based polices, etc. The JSON output file will contain a list of resource types where listing was denied.
 
-* The JSON output file will also contain default resources that were created by AWS, independent of whether you 
-  actually used the service or not.
+* The JSON output file will also contain default resources that were created by AWS, independent of whether you actually used the service or not.
 
 * To speed up execution of the script, run it within an AWS region (e.g., on EC2 or CloudShell) instead of your local machine.
 
