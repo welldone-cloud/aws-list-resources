@@ -12,6 +12,8 @@ import sys
 import zlib
 
 
+AWS_DEFAULT_REGION = "us-east-1"
+
 BOTO_CLIENT_CONFIG = botocore.config.Config(retries={"total_max_attempts": 5, "mode": "standard"})
 
 
@@ -27,7 +29,6 @@ def get_supported_resource_types(cloudformation_client):
     Examples: AWS::EC2::RouteTable, AWS::IAM::Role, AWS::KMS::Key, etc.
     """
     resource_types = set()
-
     list_types_paginator = cloudformation_client.get_paginator("list_types")
     for provisioning_type in ("FULLY_MUTABLE", "IMMUTABLE"):
         for list_types_page in list_types_paginator.paginate(
@@ -49,9 +50,7 @@ def get_resources(cloudcontrol_client, resource_type):
     API. If the API call failed, an empty list is returned. If the API call likely failed because of permission
     issues, a DeniedListOperationException is raised.
     """
-    print("{}, {}".format(cloudcontrol_client._client_config.region_name, resource_type))
     collected_resources = []
-
     list_resources_paginator = cloudcontrol_client.get_paginator("list_resources")
     try:
         for list_resources_page in list_resources_paginator.paginate(TypeName=resource_type):
@@ -65,7 +64,6 @@ def get_resources(cloudcontrol_client, resource_type):
         # UnsupportedActionException, InvalidRequestException, GeneralServiceException, ResourceNotFoundException,
         # HandlerInternalFailureException, AccessDeniedException, AuthorizationError, etc. They are thus handled by
         # this broad except clause. The end result is the same: resources for this resource type cannot be listed.
-
         exception_msg = str(ex).lower()
         for keyword in ("denied", "authorization", "authorized"):
             if keyword in exception_msg:
@@ -81,8 +79,7 @@ def analyze_region(region):
     """
     boto_session = boto3.session.Session(profile_name=profile, region_name=region)
 
-    # Create a shuffled list of resource types that are supported in the region. Shuffling avoids API throttling when
-    # listing the resources (e.g., avoid querying all resources of the EC2 API namespace within only a few seconds)
+    print("Reading supported resources types for region {}".format(region))
     cloudformation_client = boto_session.client("cloudformation", config=BOTO_CLIENT_CONFIG)
     try:
         resource_types = get_supported_resource_types(cloudformation_client)
@@ -91,12 +88,16 @@ def analyze_region(region):
         result_collection["_metadata"]["denied_list_operations"][region].append(msg)
         print(msg)
         return
+
+    # Shuffle the list of supported resource types, which avoids API throttling when listing the resources
+    # (e.g., avoid querying all resources of the EC2 API namespace within only a few seconds)
     resource_types.sort(key=lambda resource_type: zlib.crc32("{},{}".format(resource_type, region).encode()))
 
     # List the resources of each resource type
     cloudcontrol_client = boto_session.client("cloudcontrol", config=BOTO_CLIENT_CONFIG)
     for resource_type in resource_types:
         try:
+            print("Listing {}, region {}".format(resource_type, region))
             resources = get_resources(cloudcontrol_client, resource_type)
             if resources:
                 if only_show_counts:
@@ -124,14 +125,15 @@ if __name__ == "__main__":
         help="only show resource counts instead of listing their full identifiers",
     )
     parser.add_argument("--profile", required=False, nargs=1, help="optional named AWS profile to use")
-    parser.add_argument("--regions", required=True, nargs=1, help="comma-separated list of target AWS regions")
+    parser.add_argument(
+        "--regions", required=True, nargs=1, help="comma-separated list of target AWS regions or 'ALL'"
+    )
 
     args = parser.parse_args()
     only_show_counts = args.only_show_counts
     profile = args.profile[0] if args.profile else None
-    target_regions = [region for region in args.regions[0].split(",") if region]
 
-    boto_session = boto3.session.Session(profile_name=profile)
+    boto_session = boto3.session.Session(profile_name=profile, region_name=AWS_DEFAULT_REGION)
 
     # Test for valid credentials
     sts_client = boto_session.client("sts", config=BOTO_CLIENT_CONFIG)
@@ -140,6 +142,23 @@ if __name__ == "__main__":
     except:
         print("No or invalid AWS credentials configured")
         sys.exit(1)
+
+    # Populate target regions
+    ec2_client = boto_session.client("ec2", config=BOTO_CLIENT_CONFIG)
+    try:
+        ec2_response = ec2_client.describe_regions(AllRegions=False)
+        enabled_regions = [region["RegionName"] for region in ec2_response["Regions"]]
+    except Exception as ex:
+        print("Unable to list regions enabled in the account: {}".format(str(ex)))
+        sys.exit(1)
+    if args.regions[0] == "ALL":
+        target_regions = sorted(enabled_regions)
+    else:
+        target_regions = [region for region in args.regions[0].split(",") if region]
+        for region in target_regions:
+            if region not in enabled_regions:
+                print("Invalid or disabled region for account: {}".format(region))
+                sys.exit(1)
 
     # Prepare results directory
     results_directory = os.path.join(os.path.relpath(os.path.dirname(__file__)), "results")

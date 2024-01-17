@@ -13,14 +13,16 @@ variables](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvar
 profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html) in the optional `--profile` 
 argument. Read-only IAM permissions are sufficient. 
 
-When running the script, it is recommended to include the `us-east-1` region in addition to the region(s) that your workload uses primarily. This ensures that resources of global AWS services are captured as well.
+If you run the script against specific regions, it is recommended to include the `us-east-1` region as well. This ensures that resources of global AWS services are captured as well.
 
-Example invocation:
+Example invocations:
 
 ```bash
 pip install -r requirements.txt
 
 python aws_list_resources.py --regions us-east-1,eu-central-1
+
+python aws_list_resources.py --regions ALL
 ```
 
 
@@ -29,7 +31,7 @@ python aws_list_resources.py --regions us-east-1,eu-central-1
 ```
 --only-show-counts  only show resource counts instead of listing their full identifiers
 --profile PROFILE   optional named AWS profile to use
---regions REGIONS   comma-separated list of target AWS regions
+--regions REGIONS   comma-separated list of target AWS regions or 'ALL'
 ```
 
 
@@ -60,6 +62,7 @@ Truncated example JSON output file:
   "_metadata": {
     "account_id": "123456789012",
     "account_principal": "arn:aws:iam::123456789012:user/myuser",
+    "invocation": "aws_list_resources.py --regions us-east-1,eu-central-1",
     "run_timestamp": "20221020084237"
     // ...
   },
