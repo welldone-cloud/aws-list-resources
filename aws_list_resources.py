@@ -77,7 +77,7 @@ def analyze_region(region):
     Lists all resource types that are supported in the given region, lists their respective resources (if not filtered)
     and adds them to the result collection.
     """
-    boto_session = boto3.session.Session(profile_name=profile, region_name=region)
+    boto_session = boto3.Session(profile_name=profile, region_name=region)
 
     print("Reading supported resources types for region {}".format(region))
     cloudformation_client = boto_session.client("cloudformation", config=BOTO_CLIENT_CONFIG)
@@ -141,7 +141,7 @@ if __name__ == "__main__":
         action="store_true",
         help="only show resource counts instead of listing their full identifiers",
     )
-    parser.add_argument("--profile", required=False, nargs=1, help="optional named AWS profile to use")
+    parser.add_argument("--profile", required=False, nargs=1, help="named AWS profile to use")
     parser.add_argument(
         "--regions", required=True, nargs=1, help="comma-separated list of target AWS regions or 'ALL'"
     )
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     only_show_counts = args.only_show_counts
     profile = args.profile[0] if args.profile else None
 
-    boto_session = boto3.session.Session(profile_name=profile, region_name=AWS_DEFAULT_REGION)
+    boto_session = boto3.Session(profile_name=profile, region_name=AWS_DEFAULT_REGION)
 
     # Test for valid credentials
     sts_client = boto_session.client("sts", config=BOTO_CLIENT_CONFIG)
