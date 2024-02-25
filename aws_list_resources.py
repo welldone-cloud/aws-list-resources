@@ -9,6 +9,7 @@ import datetime
 import fnmatch
 import json
 import os
+import pkg_resources
 import sys
 
 
@@ -117,6 +118,13 @@ if __name__ == "__main__":
     if sys.version_info[0] < 3:
         print("Python version 3 required")
         sys.exit(1)
+    with open("requirements.txt") as requirements_file:
+        try:
+            for package in requirements_file.read().splitlines():
+                pkg_resources.require(package)
+        except (pkg_resources.ResolutionError, pkg_resources.ExtractionError):
+            print("Unfulfilled requirement: {}".format(package))
+            sys.exit(1)
 
     # Parse arguments
     parser = argparse.ArgumentParser()
