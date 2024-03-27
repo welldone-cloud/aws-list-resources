@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import bisect
 import boto3
 import botocore.config
 import concurrent.futures
@@ -73,6 +72,11 @@ def get_resources(cloudcontrol_client, resource_type):
     return collected_resources
 
 
+def log_error(msg, region):
+    result_collection["_metadata"]["errors"][region].append(msg)
+    print("Error: {}".format(msg))
+
+
 def analyze_region(region):
     """
     Lists all resource types that are supported in the given region, lists their respective resources (if not filtered)
@@ -85,10 +89,17 @@ def analyze_region(region):
     try:
         resource_types_supported = get_supported_resource_types(cloudformation_client)
     except Exception as ex:
-        msg = "Error: unable to list resource types for region {}: {}".format(region, str(ex))
-        result_collection["_metadata"]["denied_list_operations"][region].append(msg)
-        print(msg)
+        msg = "Unable to list supported resource types for region {}: {}".format(region, str(ex))
+        log_error(msg, region)
         return
+
+    # Log if there are resource type arguments that don't have any matches in this region
+    for pattern in sorted(set(include_resource_types + exclude_resource_types)):
+        if not fnmatch.filter(resource_types_supported, pattern):
+            msg = "Provided resource type does not match any supported resource types in region {}: {}".format(
+                region, pattern
+            )
+            log_error(msg, region)
 
     # Filter included and excluded resource types
     resource_types_filtered = set()
@@ -96,6 +107,7 @@ def analyze_region(region):
         resource_types_filtered.update(fnmatch.filter(resource_types_supported, pattern))
     for pattern in exclude_resource_types:
         resource_types_filtered.difference_update(fnmatch.filter(resource_types_supported, pattern))
+    resource_types_filtered = sorted(resource_types_filtered)
 
     # List resources for each resource type
     cloudcontrol_client = boto_session.client("cloudcontrol", config=BOTO_CLIENT_CONFIG)
@@ -110,7 +122,8 @@ def analyze_region(region):
                     result_collection["regions"][region][resource_type] = sorted(resources)
 
         except DeniedListOperationException:
-            bisect.insort(result_collection["_metadata"]["denied_list_operations"][region], resource_type)
+            msg = "Unable to list resources type in region {}: {}".format(region, resource_type)
+            log_error(msg, region)
 
 
 if __name__ == "__main__":
@@ -170,7 +183,7 @@ if __name__ == "__main__":
         print("No or invalid AWS credentials configured")
         sys.exit(1)
 
-    # Populate target regions
+    # Prepare target regions
     ec2_client = boto_session.client("ec2", config=BOTO_CLIENT_CONFIG)
     try:
         ec2_response = ec2_client.describe_regions(AllRegions=False)
@@ -200,7 +213,7 @@ if __name__ == "__main__":
         "_metadata": {
             "account_id": sts_response["Account"],
             "account_principal": sts_response["Arn"],
-            "denied_list_operations": {region: [] for region in target_regions},
+            "errors": {region: [] for region in target_regions},
             "invocation": " ".join(sys.argv),
             "run_timestamp": run_timestamp,
         },

@@ -41,7 +41,7 @@ python aws_list_resources.py --regions ALL --include-resource-types AWS::EC2::*,
   
   It is further restricted to those resources where the `List` operation does not expect any additional parameters.
 
-* If the IAM user or role you use to run the script does not have permissions to interact with certain AWS services or regions, those resources will be missed. Note that permissions can be restricted on different levels, such as SCPs, identity-based polices, etc. The JSON output file will contain a list of resource types where listing was denied.
+* If the IAM user or role you use to run the script does not have permissions to interact with certain AWS services or regions, those resources will be missed. Note that permissions can be restricted on different levels, such as SCPs, identity-based polices, etc. The JSON output file will contain information on resource types where listing was not successful.
 
 * The JSON output file will also contain default resources that were created by AWS, independent of whether you actually used the service or not.
 
