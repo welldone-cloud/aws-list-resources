@@ -28,7 +28,7 @@ python aws_list_resources.py --regions ALL --include-resource-types AWS::EC2::*,
 --exclude-resource-types  do not list the specified comma-separated resource types (supports wildcards)
 --include-resource-types  only list the specified comma-separated resource types (supports wildcards)
 --only-show-counts        only show resource counts instead of listing their full identifiers
---profile PROFILE         named AWS profile to use
+--profile PROFILE         named AWS profile to use when running the command
 --regions REGIONS         comma-separated list of target AWS regions or 'ALL'
 ```
 

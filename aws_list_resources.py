@@ -3,6 +3,7 @@
 import argparse
 import boto3
 import botocore.config
+import botocore.exceptions
 import concurrent.futures
 import datetime
 import fnmatch
@@ -15,6 +16,8 @@ import sys
 AWS_DEFAULT_REGION = "us-east-1"
 
 BOTO_CLIENT_CONFIG = botocore.config.Config(retries={"total_max_attempts": 5, "mode": "standard"})
+
+TIMESTAMP_FORMAT = "%Y%m%d%H%M%S"
 
 
 class DeniedListOperationException(Exception):
@@ -79,10 +82,10 @@ def log_error(msg, region):
 
 def analyze_region(region):
     """
-    Lists all resource types that are supported in the given region, lists their respective resources (if not filtered)
-    and adds them to the result collection.
+    Gets all resource types that are supported in the given region, lists their respective resources (if not filtered
+    by arguments) and adds them to the result collection.
     """
-    boto_session = boto3.Session(profile_name=profile, region_name=region)
+    boto_session = boto3.Session(profile_name=args.profile, region_name=region)
 
     print("Reading supported resources types for region {}".format(region))
     cloudformation_client = boto_session.client("cloudformation", config=BOTO_CLIENT_CONFIG)
@@ -94,29 +97,29 @@ def analyze_region(region):
         return
 
     # Log if there are resource type arguments that don't have any matches in this region
-    for pattern in sorted(set(include_resource_types + exclude_resource_types)):
+    for pattern in sorted(set(args.include_resource_types + args.exclude_resource_types)):
         if not fnmatch.filter(resource_types_supported, pattern):
             msg = "Provided resource type does not match any supported resource types in region {}: {}".format(
                 region, pattern
             )
             log_error(msg, region)
 
-    # Filter included and excluded resource types
-    resource_types_filtered = set()
-    for pattern in include_resource_types:
-        resource_types_filtered.update(fnmatch.filter(resource_types_supported, pattern))
-    for pattern in exclude_resource_types:
-        resource_types_filtered.difference_update(fnmatch.filter(resource_types_supported, pattern))
-    resource_types_filtered = sorted(resource_types_filtered)
+    # Filter resource types by include and exclude arguments
+    resource_types_enabled = set()
+    for pattern in args.include_resource_types:
+        resource_types_enabled.update(fnmatch.filter(resource_types_supported, pattern))
+    for pattern in args.exclude_resource_types:
+        resource_types_enabled.difference_update(fnmatch.filter(resource_types_supported, pattern))
+    resource_types_enabled = sorted(resource_types_enabled)
 
-    # List resources for each resource type
+    # List resources for each enabled resource type
     cloudcontrol_client = boto_session.client("cloudcontrol", config=BOTO_CLIENT_CONFIG)
-    for resource_type in resource_types_filtered:
+    for resource_type in resource_types_enabled:
         try:
             print("Listing {}, region {}".format(resource_type, region))
             resources = get_resources(cloudcontrol_client, resource_type)
             if resources:
-                if only_show_counts:
+                if args.only_show_counts:
                     result_collection["regions"][region][resource_type] = len(resources)
                 else:
                     result_collection["regions"][region][resource_type] = sorted(resources)
@@ -126,12 +129,36 @@ def analyze_region(region):
             log_error(msg, region)
 
 
+def parse_resource_types(val):
+    """
+    Argument parser.
+    """
+    if not val:
+        return []
+    for resource_type in val.split(","):
+        if not resource_type:
+            raise argparse.ArgumentTypeError("Invalid resource type specification")
+    return val.split(",")
+
+
+def parse_regions(val):
+    """
+    Argument parser.
+    """
+    if val == "ALL":
+        return val
+    for region in val.split(","):
+        if not region or region == "ALL":
+            raise argparse.ArgumentTypeError("Invalid region specification")
+    return sorted(set(val.split(",")))
+
+
 if __name__ == "__main__":
     # Check runtime environment
     if sys.version_info[0] < 3:
         print("Python version 3 required")
         sys.exit(1)
-    with open("requirements.txt") as requirements_file:
+    with open("requirements.txt", "r") as requirements_file:
         try:
             for package in requirements_file.read().splitlines():
                 pkg_resources.require(package)
@@ -143,39 +170,40 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--exclude-resource-types",
-        required=False,
-        default=[""],
-        nargs=1,
+        default="",
+        type=parse_resource_types,
         help="do not list the specified comma-separated resource types (supports wildcards)",
     )
     parser.add_argument(
         "--include-resource-types",
-        required=False,
-        default=["*"],
-        nargs=1,
+        default="*",
+        type=parse_resource_types,
         help="only list the specified comma-separated resource types (supports wildcards)",
     )
     parser.add_argument(
         "--only-show-counts",
-        required=False,
         default=False,
         action="store_true",
         help="only show resource counts instead of listing their full identifiers",
     )
-    parser.add_argument("--profile", required=False, nargs=1, help="named AWS profile to use")
     parser.add_argument(
-        "--regions", required=True, nargs=1, help="comma-separated list of target AWS regions or 'ALL'"
+        "--profile",
+        help="named AWS profile to use when running the command",
     )
-
+    parser.add_argument(
+        "--regions",
+        required=True,
+        type=parse_regions,
+        help="comma-separated list of target AWS regions or 'ALL'",
+    )
     args = parser.parse_args()
-    exclude_resource_types = [value for value in args.exclude_resource_types[0].split(",") if value]
-    include_resource_types = [value for value in args.include_resource_types[0].split(",") if value]
-    only_show_counts = args.only_show_counts
-    profile = args.profile[0] if args.profile else None
-
-    boto_session = boto3.Session(profile_name=profile, region_name=AWS_DEFAULT_REGION)
 
     # Test for valid credentials
+    try:
+        boto_session = boto3.Session(profile_name=args.profile, region_name=AWS_DEFAULT_REGION)
+    except botocore.exceptions.ProfileNotFound as ex:
+        print("Error: {}".format(ex))
+        sys.exit(1)
     sts_client = boto_session.client("sts", config=BOTO_CLIENT_CONFIG)
     try:
         sts_response = sts_client.get_caller_identity()
@@ -191,11 +219,10 @@ if __name__ == "__main__":
     except Exception as ex:
         print("Unable to list regions enabled in the account: {}".format(str(ex)))
         sys.exit(1)
-    if args.regions[0] == "ALL":
-        target_regions = sorted(enabled_regions)
+    if args.regions == "ALL":
+        args.regions = sorted(enabled_regions)
     else:
-        target_regions = [region for region in args.regions[0].split(",") if region]
-        for region in target_regions:
+        for region in args.regions:
             if region not in enabled_regions:
                 print("Invalid or disabled region for account: {}".format(region))
                 sys.exit(1)
@@ -208,22 +235,22 @@ if __name__ == "__main__":
         pass
 
     # Prepare result collection structure
-    run_timestamp = datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    run_timestamp = datetime.datetime.now(datetime.timezone.utc).strftime(TIMESTAMP_FORMAT)
     result_collection = {
         "_metadata": {
             "account_id": sts_response["Account"],
             "account_principal": sts_response["Arn"],
-            "errors": {region: [] for region in target_regions},
+            "errors": {region: [] for region in args.regions},
             "invocation": " ".join(sys.argv),
             "run_timestamp": run_timestamp,
         },
-        "regions": {region: {} for region in target_regions},
+        "regions": {region: {} for region in args.regions},
     }
 
     # Collect resources using one thread for each target region
     print("Analyzing account ID {}".format(sts_response["Account"]))
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        for region in target_regions:
+        for region in args.regions:
             executor.submit(analyze_region, region)
 
     # Write result file
