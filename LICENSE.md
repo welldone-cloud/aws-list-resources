@@ -1,4 +1,4 @@
-Copyright (c) 2024 welldone.cloud
+Copyright (c) welldone.cloud
 
 GNU Affero General Public License
 =================================
