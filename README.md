@@ -1,19 +1,21 @@
 # aws-list-resources
 
-Uses the AWS Cloud Control API to list resources that are present in a given AWS account and region(s). Discovered resources are written to a JSON output file. See the accompanying blog posts [here](https://medium.com/@michael.kirchner/how-to-list-all-resources-in-your-aws-account-c3f18061f71b) and [here](https://medium.com/@michael.kirchner/exploring-aws-resource-explorer-825498b5307d).
+Uses the AWS Cloud Control API to list resources that are present in a given AWS account and region(s). Discovered resources are written to a JSON output file. 
 
 
 ## Usage
 
 Make sure you have AWS credentials configured for your target account. This can either be done using [environment variables](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html) or by specifying a [named profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html) in the optional `--profile` argument. Read-only IAM permissions are sufficient. 
 
-If you run the script against specific regions, it is recommended to also include the `us-east-1` region. This ensures that resources of global AWS services are captured as well.
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
 
 Example invocations:
 
 ```bash
-pip install -r requirements.txt
-
 python aws_list_resources.py --regions us-east-1,eu-central-1
 
 python aws_list_resources.py --regions ALL
@@ -45,8 +47,6 @@ python aws_list_resources.py --regions ALL --include-resource-types AWS::EC2::*,
 
 * The JSON output file will also contain default resources that were created by AWS, independent of whether you actually used the service or not.
 
-* To speed up execution of the script, run it within an AWS region (e.g., on EC2 or CloudShell) instead of your local machine.
-
 
 ## Example output file
 
@@ -57,7 +57,7 @@ Truncated example JSON output file:
     "account_id": "123456789012",
     "account_principal": "arn:aws:iam::123456789012:user/myuser",
     "invocation": "aws_list_resources.py --regions us-east-1,eu-central-1",
-    "run_timestamp": "20221020084237"
+    "run_timestamp": "20250105134120"
     // ...
   },
   "regions": {
