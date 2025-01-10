@@ -30,6 +30,8 @@ class DeniedListOperationException(Exception):
     Raised when the "List" operation of the Cloud Control API failed due to permission errors.
     """
 
+    pass
+
 
 def get_supported_resource_types(cloudformation_client):
     """
@@ -92,7 +94,7 @@ def analyze_region(region):
     """
     boto_session = boto3.Session(profile_name=args.profile, region_name=region)
 
-    print("Reading supported resources types for region {}".format(region))
+    print("Reading supported resource types for region {}".format(region))
     cloudformation_client = boto_session.client("cloudformation", config=BOTO_CLIENT_CONFIG)
     try:
         resource_types_supported = get_supported_resource_types(cloudformation_client)
@@ -130,7 +132,7 @@ def analyze_region(region):
                     result_collection["regions"][region][resource_type] = sorted(resources)
 
         except DeniedListOperationException:
-            msg = "Unable to list resources type in region {}: {}".format(region, resource_type)
+            msg = "Access denied to list resource type in region {}: {}".format(region, resource_type)
             log_error(msg, region)
 
 
