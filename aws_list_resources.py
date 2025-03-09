@@ -10,6 +10,7 @@ import fnmatch
 import importlib.metadata
 import json
 import os
+import packaging.requirements
 import packaging.version
 import pathlib
 import sys
@@ -166,12 +167,12 @@ if __name__ == "__main__":
         print("Python version 3.10 or higher required")
         sys.exit(1)
     with open(os.path.join(pathlib.Path(__file__).parent, "requirements.txt"), "r") as requirements_file:
-        for package_requirement in requirements_file.read().splitlines():
-            package_name, package_version = [val.strip() for val in package_requirement.split(">=")]
-            installed_version = packaging.version.parse(importlib.metadata.version(package_name))
-            expected_version = packaging.version.parse(package_version)
-            if installed_version < expected_version:
-                print("Unfulfilled requirement: {}".format(package_requirement))
+        for requirements_line in requirements_file.read().splitlines():
+            requirement = packaging.requirements.Requirement(requirements_line)
+            expected_version_specifier = requirement.specifier
+            installed_version = packaging.version.parse(importlib.metadata.version(requirement.name))
+            if installed_version not in expected_version_specifier:
+                print("Unfulfilled requirement: {}".format(requirements_line))
                 sys.exit(1)
 
     # Parse arguments
