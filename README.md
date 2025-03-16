@@ -1,6 +1,6 @@
 # aws-list-resources
 
-Uses the AWS Cloud Control API to list resources that are present in a given AWS account and region(s). Discovered resources are written to a JSON result file. 
+Uses the AWS Cloud Control API to list resources that are present in a given AWS account and region(s). Discovered resources are written to a JSON result file. See example result file [here](doc/example_results.json).
 
 
 ## Usage
@@ -33,11 +33,6 @@ python aws_list_resources.py --regions ALL --include-resource-types AWS::EC2::*,
 --profile PROFILE         named AWS profile to use when running the command
 --regions REGIONS         comma-separated list of target AWS regions or 'ALL'
 ```
-
-
-## Example result
-
-Results are written to a JSON file ([see example](doc/example_results.json))
 
 
 ## Notes
