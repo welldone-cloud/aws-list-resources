@@ -1,0 +1,371 @@
+{
+    "_metadata": {
+        "account_id": "123456789012",
+        "account_principal": "arn:aws:iam::123456789012:user/myuser",
+        "errors": {
+            "eu-central-1": [
+                "Access denied to list resource type in region eu-central-1: AWS::Macie::AllowList",
+                "Access denied to list resource type in region eu-central-1: AWS::Macie::CustomDataIdentifier",
+                "Access denied to list resource type in region eu-central-1: AWS::Macie::FindingsFilter"
+            ]
+        },
+        "invocation": "aws_list_resources.py --region eu-central-1",
+        "run_timestamp": "20250315215910"
+    },
+    "regions": {
+        "eu-central-1": {
+            "AWS::Athena::WorkGroup": {
+                "Spark_primary": {
+                    "CreationTime": "1704132450",
+                    "Description": "",
+                    "Name": "Spark_primary",
+                    "State": "ENABLED"
+                }
+            },
+            "AWS::Backup::BackupPlan": {
+                "aws/efs/71d922fb-9312-3a70-99c3-e69cc7f9fdad": {
+                    "BackupPlanId": "aws/efs/71d922fb-9312-3a70-99c3-e69cc7f9fdad"
+                }
+            },
+            "AWS::Backup::BackupVault": {
+                "Default": {
+                    "BackupVaultName": "Default"
+                },
+                "aws/efs/automatic-backup-vault": {
+                    "BackupVaultName": "aws/efs/automatic-backup-vault"
+                }
+            },
+            "AWS::CloudTrail::Trail": {
+                "organization-wide-trail": {
+                    "Arn": "arn:aws:cloudtrail:eu-central-1:999999999999:trail/organization-trail",
+                    "TrailName": "organization-trail"
+                }
+            },
+            "AWS::EC2::DHCPOptions": {
+                "dopt-01e71736ce28332c6": {
+                    "DhcpOptionsId": "dopt-01e71736ce28332c6",
+                    "DomainName": "eu-central-1.compute.internal",
+                    "DomainNameServers": [
+                        "AmazonProvidedDNS"
+                    ],
+                    "Tags": []
+                }
+            },
+            "AWS::EC2::InternetGateway": {
+                "igw-d4c1cbb3bf8554dbf": {
+                    "InternetGatewayId": "igw-d4c1cbb3bf8554dbf"
+                }
+            },
+            "AWS::EC2::KeyPair": {
+                "aws_ssh_key": {
+                    "KeyFingerprint": "a7:4b:da:c3:82:d4:3e:ba:dd:0e:0a:3d:1c:e2:73:97:07:d1:fd:45",
+                    "KeyName": "aws_ssh_key",
+                    "KeyPairId": "key-03f917eab5caa3de4",
+                    "KeyType": "rsa",
+                    "PublicKeyMaterial": "ssh-rsa AAAAC3NzaC1yc24AADADAQABAAbBAQCapQl474ynW7UxkVGsyJmVWbKOp8bO//QHwhP8aX1FPccfH187L310nZbwh3bG/dsa3Ot0ED5FrM2KNyhtMrKGW1PWlFUat4JlVbDR4W1VhTCD/3dK4kyAow640aiuO+WusLyop9Nn6z11BuFsO+G/46RkKMiIjd9Dt9rR5sX1W8qXisRXcSXGMIalqxNj6QRELKTQPdKHn9cVUbc9v0ihHlip5RD0MrXVrlT3F2TbhUvXqUBhu+EOaRhS6N6rISbaku8CWRlEqhfBwOcca5ZFvbqf1B0AJ4s8qNLnhhIMDM82IoaI+521Lfg0W2+/F9NJ/pHy7P22rRT3+v2QXlO/ aws_ssh_key\n",
+                    "Tags": []
+                }
+            },
+            "AWS::EC2::NetworkAcl": {
+                "acl-0a8fa8db1d63d5bc8": {
+                    "Id": "acl-0a8fa8db1d63d5bc8",
+                    "VpcId": "vpc-0083b6e8191976d66"
+                }
+            },
+            "AWS::EC2::RouteTable": {
+                "rtb-0208932fad4c73833": {
+                    "RouteTableId": "rtb-0208932fad4c73833"
+                },
+                "rtb-089638376eda09ca3": {
+                    "RouteTableId": "rtb-089638376eda09ca3"
+                }
+            },
+            "AWS::EC2::SecurityGroup": {
+                "sg-019491dc9777afaae": {
+                    "Id": "sg-019491dc9777afaae"
+                },
+                "sg-019fa666cb027b9fa": {
+                    "Id": "sg-019fa666cb027b9fa"
+                }
+            },
+            "AWS::EC2::SecurityGroupEgress": {
+                "sgr-02b17bf1aa95f96be": {
+                    "Id": "sgr-02b17bf1aa95f96be"
+                },
+                "sgr-0d59d1bb308e120c8": {
+                    "Id": "sgr-0d59d1bb308e120c8"
+                }
+            },
+            "AWS::EC2::SecurityGroupIngress": {
+                "sgr-01716f48a2b853bc7": {
+                    "CidrIp": "0.0.0.0/0",
+                    "FromPort": 80,
+                    "GroupId": "sg-019491dc9777afaae",
+                    "Id": "sgr-01716f48a2b853bc7",
+                    "IpProtocol": "tcp",
+                    "ToPort": 80
+                },
+                "sgr-01e7a7dec6565644c": {
+                    "CidrIp": "0.0.0.0/0",
+                    "FromPort": 443,
+                    "GroupId": "sg-019491dc9777afaae",
+                    "Id": "sgr-01e7a7dec6565644c",
+                    "IpProtocol": "tcp",
+                    "ToPort": 443
+                },
+                "sgr-0298a314ae0f56e01": {
+                    "CidrIp": "0.0.0.0/0",
+                    "FromPort": 22,
+                    "GroupId": "sg-019fa666cb027b9fa",
+                    "Id": "sgr-0298a314ae0f56e01",
+                    "IpProtocol": "tcp",
+                    "ToPort": 22
+                },
+                "sgr-02b17bf1aa95f96be": {
+                    "CidrIp": "0.0.0.0/0",
+                    "FromPort": 0,
+                    "GroupId": "sg-019491dc9777afaae",
+                    "Id": "sgr-02b17bf1aa95f96be",
+                    "IpProtocol": "tcp",
+                    "ToPort": 65535
+                },
+                "sgr-0b61709a4e8a75504": {
+                    "CidrIpv6": "::/0",
+                    "FromPort": 22,
+                    "GroupId": "sg-019fa666cb027b9fa",
+                    "Id": "sgr-0b61709a4e8a75504",
+                    "IpProtocol": "tcp",
+                    "ToPort": 22
+                },
+                "sgr-0d59d1bb308e120c8": {
+                    "CidrIpv6": "::/0",
+                    "FromPort": -1,
+                    "GroupId": "sg-019fa666cb027b9fa",
+                    "Id": "sgr-0d59d1bb308e120c8",
+                    "IpProtocol": "-1",
+                    "ToPort": -1
+                }
+            },
+            "AWS::EC2::SnapshotBlockPublicAccess": {
+                "123456789012": {
+                    "AccountId": "123456789012",
+                    "State": "block-all-sharing"
+                }
+            },
+            "AWS::EC2::Subnet": {
+                "subnet-01be2c4dad4b6ff7d": {
+                    "AssignIpv6AddressOnCreation": true,
+                    "AvailabilityZone": "eu-central-1a",
+                    "AvailabilityZoneId": "euc1-az2",
+                    "CidrBlock": "172.31.16.0/20",
+                    "EnableDns64": false,
+                    "Ipv6CidrBlock": "2a05:d021:d77:9301::/64",
+                    "Ipv6CidrBlocks": [
+                        "2a05:d021:d77:9301::/64"
+                    ],
+                    "Ipv6Native": false,
+                    "MapPublicIpOnLaunch": true,
+                    "NetworkAclAssociationId": "aclassoc-006b7b6bdb137aaad",
+                    "PrivateDnsNameOptionsOnLaunch": {
+                        "EnableResourceNameDnsAAAARecord": false,
+                        "EnableResourceNameDnsARecord": false,
+                        "HostnameType": "ip-name"
+                    },
+                    "SubnetId": "subnet-01be2c4dad4b6ff7d",
+                    "Tags": [
+                        {
+                            "Key": "Name",
+                            "Value": "public-subnet-2"
+                        }
+                    ],
+                    "VpcId": "vpc-0083b6e8191976d66"
+                },
+                "subnet-084aa19b9cfdc7a3b": {
+                    "AssignIpv6AddressOnCreation": true,
+                    "AvailabilityZone": "eu-central-1c",
+                    "AvailabilityZoneId": "euc1-az1",
+                    "CidrBlock": "172.31.0.0/20",
+                    "EnableDns64": false,
+                    "Ipv6CidrBlock": "2a05:d021:d77:9302::/64",
+                    "Ipv6CidrBlocks": [
+                        "2a05:d021:d77:9302::/64"
+                    ],
+                    "Ipv6Native": false,
+                    "MapPublicIpOnLaunch": true,
+                    "NetworkAclAssociationId": "aclassoc-006b7b6bdb137aaad",
+                    "PrivateDnsNameOptionsOnLaunch": {
+                        "EnableResourceNameDnsAAAARecord": false,
+                        "EnableResourceNameDnsARecord": false,
+                        "HostnameType": "ip-name"
+                    },
+                    "SubnetId": "subnet-084aa19b9cfdc7a3b",
+                    "Tags": [
+                        {
+                            "Key": "Name",
+                            "Value": "public-subnet-1"
+                        }
+                    ],
+                    "VpcId": "vpc-0083b6e8191976d66"
+                }
+            },
+            "AWS::EC2::SubnetCidrBlock": {
+                "subnet-cidr-assoc-04d0a3ffeaca500b9": {
+                    "Id": "subnet-cidr-assoc-04d0a3ffeaca500b9",
+                    "IpSource": "amazon",
+                    "Ipv6AddressAttribute": "public",
+                    "Ipv6CidrBlock": "2a05:d021:d77:9302::/64",
+                    "SubnetId": "subnet-084aa19b9cfdc7a3b"
+                },
+                "subnet-cidr-assoc-0e24b8089827bce26": {
+                    "Id": "subnet-cidr-assoc-0e24b8089827bce26",
+                    "IpSource": "amazon",
+                    "Ipv6AddressAttribute": "public",
+                    "Ipv6CidrBlock": "2a05:d021:d77:9301::/64",
+                    "SubnetId": "subnet-01be2c4dad4b6ff7d"
+                }
+            },
+            "AWS::EC2::SubnetNetworkAclAssociation": {
+                "aclassoc-06c4db1dfdcf20cd6": {
+                    "AssociationId": "aclassoc-06c4db1dfdcf20cd6",
+                    "NetworkAclId": "acl-0a8fa8db1d63d5bc8",
+                    "SubnetId": "subnet-01be2c4dad4b6ff7d"
+                },
+                "aclassoc-0f66d63501da83715": {
+                    "AssociationId": "aclassoc-0f66d63501da83715",
+                    "NetworkAclId": "acl-0a8fa8db1d63d5bc8",
+                    "SubnetId": "subnet-084aa19b9cfdc7a3b"
+                }
+            },
+            "AWS::EC2::SubnetRouteTableAssociation": {
+                "rtbassoc-0644123dbddb3da98": {
+                    "Id": "rtbassoc-0644123dbddb3da98"
+                },
+                "rtbassoc-09ba509b44c9e7275": {
+                    "Id": "rtbassoc-09ba509b44c9e7275"
+                }
+            },
+            "AWS::EC2::VPC": {
+                "vpc-0083b6e8191976d66": {
+                    "VpcId": "vpc-0083b6e8191976d66"
+                }
+            },
+            "AWS::EC2::VPCDHCPOptionsAssociation": {
+                "dopt-01e71736ce28332c6|vpc-0083b6e8191976d66": {
+                    "DhcpOptionsId": "dopt-01e71736ce28332c6",
+                    "VpcId": "vpc-0083b6e8191976d66"
+                }
+            },
+            "AWS::EC2::VPCGatewayAttachment": {
+                "IGW|vpc-0083b6e8191976d66": {
+                    "AttachmentType": "IGW",
+                    "VpcId": "vpc-0083b6e8191976d66"
+                }
+            },
+            "AWS::IAM::InstanceProfile": {
+                "EC2InstanceProfileForImageBuilder": {
+                    "Arn": "arn:aws:iam::123456789012:instance-profile/EC2InstanceProfileForImageBuilder",
+                    "InstanceProfileName": "EC2InstanceProfileForImageBuilder",
+                    "Path": "/",
+                    "Roles": [
+                        "EC2InstanceProfileForImageBuilder"
+                    ]
+                }
+            },
+            "AWS::IAM::ManagedPolicy": {
+                "arn:aws:iam::123456789012:policy/service-role/AWSGlueServiceRole-crawler-EZCRC-s3Policy": {
+                    "PolicyArn": "arn:aws:iam::123456789012:policy/service-role/AWSGlueServiceRole-crawler-EZCRC-s3Policy"
+                },
+                "arn:aws:iam::123456789012:policy/service-role/Amazon_EventBridge_Invoke_Event_Bus_245013010": {
+                    "PolicyArn": "arn:aws:iam::123456789012:policy/service-role/Amazon_EventBridge_Invoke_Event_Bus_245013010"
+                },
+                "arn:aws:iam::123456789012:policy/service-role/CloudTrailPolicyForCloudWatchLogs_aa3c7b77-459c-4a37-aa7b-ec4cee44c5a6": {
+                    "PolicyArn": "arn:aws:iam::123456789012:policy/service-role/CloudTrailPolicyForCloudWatchLogs_aa3c7b77-459c-4a37-aa7b-ec4cee44c5a6"
+                },
+                "arn:aws:iam::123456789012:policy/service-role/KinesisFirehoseServicePolicy-PUT-S3-U3IFk-eu-central-1": {
+                    "PolicyArn": "arn:aws:iam::123456789012:policy/service-role/KinesisFirehoseServicePolicy-PUT-S3-U3IFk-eu-central-1"
+                },
+                "arn:aws:iam::123456789012:policy/service-role/SqsPipeTargetTemplate-e420c0f2": {
+                    "PolicyArn": "arn:aws:iam::123456789012:policy/service-role/SqsPipeTargetTemplate-e420c0f2"
+                }
+            },
+            "AWS::IAM::Role": {
+                "AWSServiceRoleForAPIGateway": {
+                    "RoleName": "AWSServiceRoleForAPIGateway"
+                },
+                "AWSServiceRoleForAWSLicenseManagerRole": {
+                    "RoleName": "AWSServiceRoleForAWSLicenseManagerRole"
+                },
+                "AWSServiceRoleForAmazonGuardDuty": {
+                    "RoleName": "AWSServiceRoleForAmazonGuardDuty"
+                },
+                "AWSServiceRoleForRDS": {
+                    "RoleName": "AWSServiceRoleForRDS"
+                },
+                "EC2InstanceProfileForImageBuilder": {
+                    "RoleName": "EC2InstanceProfileForImageBuilder"
+                },
+                "LambdaBasicExecutionRole": {
+                    "RoleName": "LambdaBasicExecutionRole"
+                },
+                "OrganizationAccountAccessRole": {
+                    "RoleName": "OrganizationAccountAccessRole"
+                },
+                "rds-monitoring-role": {
+                    "RoleName": "rds-monitoring-role"
+                }
+            },
+            "AWS::IAM::User": {
+                "myuser": {
+                    "UserName": "myuser"
+                }
+            },
+            "AWS::KMS::Key": {
+                "16d3b863-69ed-4407-81de-f8a725e44764": {
+                    "KeyId": "16d3b863-69ed-4407-81de-f8a725e44764"
+                },
+                "1b77ff6b-3bea-40a1-ac91-39ff5808b79a": {
+                    "KeyId": "1b77ff6b-3bea-40a1-ac91-39ff5808b79a"
+                },
+                "1ecf527b-9b8f-4818-a9c3-ddecf4fbeba8": {
+                    "KeyId": "1ecf527b-9b8f-4818-a9c3-ddecf4fbeba8"
+                }
+            },
+            "AWS::Logs::LogGroup": {
+                "/aws/lambda/AlarmingFunction": {
+                    "Arn": "arn:aws:logs:eu-central-1:123456789012:log-group:/aws/lambda/AlarmingFunction:*",
+                    "LogGroupClass": "STANDARD",
+                    "LogGroupName": "/aws/lambda/AlarmingFunction"
+                },
+                "RDSOSMetrics": {
+                    "Arn": "arn:aws:logs:eu-central-1:123456789012:log-group:RDSOSMetrics:*",
+                    "LogGroupClass": "STANDARD",
+                    "LogGroupName": "RDSOSMetrics",
+                    "RetentionInDays": 30
+                }
+            },
+            "AWS::S3::Bucket": {
+                "athena-results-123456789012": {
+                    "BucketName": "athena-results-123456789012"
+                },
+                "testbucket-123456789012": {
+                    "BucketName": "testbucket-123456789012"
+                }
+            },
+            "AWS::S3::BucketPolicy": {
+                "athena-results-123456789012": {
+                    "Bucket": "athena-results-123456789012",
+                    "PolicyDocument": ""
+                },
+                "testbucket-123456789012": {
+                    "Bucket": "testbucket-123456789012",
+                    "PolicyDocument": ""
+                }
+            },
+            "AWS::SSO::Instance": {
+                "arn:aws:sso:::instance/ssoins-698762cc2951f199": {
+                    "InstanceArn": "arn:aws:sso:::instance/ssoins-698762cc2951f199"
+                }
+            }
+        }
+    }
+}
