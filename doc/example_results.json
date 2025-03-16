@@ -28,9 +28,6 @@
                 }
             },
             "AWS::Backup::BackupVault": {
-                "Default": {
-                    "BackupVaultName": "Default"
-                },
                 "aws/efs/automatic-backup-vault": {
                     "BackupVaultName": "aws/efs/automatic-backup-vault"
                 }
