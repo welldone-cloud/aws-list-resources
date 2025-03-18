@@ -37,9 +37,7 @@ python aws_list_resources.py --regions ALL --include-resource-types AWS::EC2::*,
 
 ## Notes
 
-* The script can only discover resources that are supported by the AWS Cloud Control API and offer support for the `List` operation:
-
-  https://docs.aws.amazon.com/cloudcontrolapi/latest/userguide/supported-resources.html
+* The script can only discover resources that are supported by the AWS Cloud Control API and offer support for the `List` operation: [https://docs.aws.amazon.com/cloudcontrolapi/latest/userguide/supported-resources.html](https://docs.aws.amazon.com/cloudcontrolapi/latest/userguide/supported-resources.html)
 
 * The script filters out default resources that AWS provides in each account and that often cannot be modified or deleted. However, AWS may create new default resources any time that the script does not correctly filter yet. Please create an issue in case you notice missing filters.
 

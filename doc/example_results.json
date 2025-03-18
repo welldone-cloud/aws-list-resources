@@ -328,10 +328,10 @@
                 }
             },
             "AWS::Logs::LogGroup": {
-                "/aws/lambda/AlarmingFunction": {
-                    "Arn": "arn:aws:logs:eu-central-1:123456789012:log-group:/aws/lambda/AlarmingFunction:*",
+                "/aws/lambda/LogForwardingFunction": {
+                    "Arn": "arn:aws:logs:eu-central-1:123456789012:log-group:/aws/lambda/LogForwardingFunction:*",
                     "LogGroupClass": "STANDARD",
-                    "LogGroupName": "/aws/lambda/AlarmingFunction"
+                    "LogGroupName": "/aws/lambda/LogForwardingFunction"
                 },
                 "RDSOSMetrics": {
                     "Arn": "arn:aws:logs:eu-central-1:123456789012:log-group:RDSOSMetrics:*",
