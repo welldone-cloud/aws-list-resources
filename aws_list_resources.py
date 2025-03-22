@@ -383,7 +383,7 @@ def analyze_region(region):
             resources = get_resources(cloudcontrol_client, resource_type)
             resources = apply_default_resources_filter(resource_type, resources)
             if resources:
-                if args.only_show_counts:
+                if args.only_store_counts:
                     result_collection["regions"][region][resource_type] = len(resources)
                 else:
                     result_collection["regions"][region][resource_type] = resources
@@ -432,34 +432,41 @@ if __name__ == "__main__":
                 sys.exit(1)
 
     # Parse arguments
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("-h", "--help", action="help", help="Show this help message and exit.")
     parser.add_argument(
         "--exclude-resource-types",
         default="",
         type=parse_resource_types,
-        help="do not list the specified comma-separated resource types (supports wildcards)",
+        help="Do not list the specified comma-separated resource types (supports wildcards).",
     )
     parser.add_argument(
         "--include-resource-types",
         default="*",
         type=parse_resource_types,
-        help="only list the specified comma-separated resource types (supports wildcards)",
+        help="Only list the specified comma-separated resource types (supports wildcards).",
     )
     parser.add_argument(
-        "--only-show-counts",
+        "--only-store-counts",
         default=False,
         action="store_true",
-        help="only show resource counts instead of extended resource information",
+        help="Only store resource counts instead of extended resource information.",
+    )
+    parser.add_argument(
+        "--show-stats",
+        default=False,
+        action="store_true",
+        help="Show stats about collected resources at the end of the run. Can contain duplicates due to AWS returning the same resources for multiple regions.",
     )
     parser.add_argument(
         "--profile",
-        help="named AWS profile to use when running the command",
+        help="Named AWS profile to use when running the command.",
     )
     parser.add_argument(
         "--regions",
         required=True,
         type=parse_regions,
-        help="comma-separated list of target AWS regions or 'ALL'",
+        help="Comma-separated list of target AWS regions or 'ALL'.",
     )
     args = parser.parse_args()
 
@@ -517,6 +524,34 @@ if __name__ == "__main__":
     with concurrent.futures.ThreadPoolExecutor() as executor:
         for region in args.regions:
             executor.submit(analyze_region, region)
+    print("Listing done")
+
+    # Show stats, if configured
+    if args.show_stats:
+        resource_counts_by_region = {}
+        resource_counts_by_type = {}
+        for region in result_collection["regions"]:
+            for resource_type, value in result_collection["regions"][region].items():
+                count = value if args.only_store_counts else len(value)
+                try:
+                    resource_counts_by_region[region] += count
+                except KeyError:
+                    resource_counts_by_region[region] = count
+                try:
+                    resource_counts_by_type[resource_type] += count
+                except KeyError:
+                    resource_counts_by_type[resource_type] = count
+
+        print("\nTop 10 resource counts by region\n---")
+        for region in sorted(resource_counts_by_region, key=resource_counts_by_region.get, reverse=True)[:10]:
+            print("{}: {}".format(region, resource_counts_by_region[region]))
+
+        print("\nTop 10 resource counts by type\n---")
+        for resource_type in sorted(resource_counts_by_type, key=resource_counts_by_type.get, reverse=True)[:10]:
+            print("{}: {}".format(resource_type, resource_counts_by_type[resource_type]))
+
+        print("\nTotal number of resources listed\n---")
+        print(sum(resource_counts_by_region.values()))
 
     # Write result file
     result_file = os.path.join(
@@ -525,4 +560,4 @@ if __name__ == "__main__":
     with open(result_file, "w") as out_file:
         json.dump(result_collection, out_file, indent=2, sort_keys=True)
 
-    print("Result file written to {}".format(result_file))
+    print("\nResult file written to {}".format(result_file))
