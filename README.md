@@ -33,12 +33,12 @@ python aws_list_resources.py --regions ALL --include-resource-types AWS::EC2::*,
     Only list the specified comma-separated resource types (supports wildcards).
 --only-store-counts 
     Only store resource counts instead of extended resource information.
---show-stats
-    Show stats about collected resources at the end of the run. Can contain duplicates due to AWS returning the same resources for multiple regions.
 --profile PROFILE
     Named AWS profile to use when running the command.
 --regions REGIONS
     Comma-separated list of target AWS regions or 'ALL'.
+--show-stats
+    Show stats about collected resources at the end of the run. Can contain duplicates due to AWS returning the same resource information for multiple regions.
 ```
 
 

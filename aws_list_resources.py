@@ -453,12 +453,6 @@ if __name__ == "__main__":
         help="Only store resource counts instead of extended resource information.",
     )
     parser.add_argument(
-        "--show-stats",
-        default=False,
-        action="store_true",
-        help="Show stats about collected resources at the end of the run. Can contain duplicates due to AWS returning the same resources for multiple regions.",
-    )
-    parser.add_argument(
         "--profile",
         help="Named AWS profile to use when running the command.",
     )
@@ -467,6 +461,12 @@ if __name__ == "__main__":
         required=True,
         type=parse_regions,
         help="Comma-separated list of target AWS regions or 'ALL'.",
+    )
+    parser.add_argument(
+        "--show-stats",
+        default=False,
+        action="store_true",
+        help="Show stats about collected resources at the end of the run. Can contain duplicates due to AWS returning the same resource information for multiple regions.",
     )
     args = parser.parse_args()
 
