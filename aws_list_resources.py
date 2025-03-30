@@ -13,6 +13,7 @@ import os
 import packaging.requirements
 import packaging.version
 import pathlib
+import re
 import sys
 
 
@@ -286,20 +287,25 @@ def apply_default_resources_filter(resource_type, resources):
             return resources
 
 
-def get_supported_resource_types(cloudformation_client):
+def get_supported_resource_types(cloudformation_client, filter_prefix):
     """
     Returns a list of resource types that are supported in a region by querying the CloudFormation registry.
     Examples: AWS::EC2::RouteTable, AWS::IAM::Role, AWS::KMS::Key, etc.
+    Resource types can be filtered by a given prefix.
     """
     resource_types = set()
     list_types_paginator = cloudformation_client.get_paginator("list_types")
+    pagination_filters = {"Category": "AWS_TYPES"}
+    if filter_prefix:
+        pagination_filters["TypeNamePrefix"] = filter_prefix
+
     for provisioning_type in ("FULLY_MUTABLE", "IMMUTABLE"):
         for list_types_page in list_types_paginator.paginate(
             Type="RESOURCE",
             Visibility="PUBLIC",
             ProvisioningType=provisioning_type,
             DeprecatedStatus="LIVE",
-            Filters={"Category": "AWS_TYPES"},
+            Filters=pagination_filters,
         ):
             for type in list_types_page["TypeSummaries"]:
                 resource_types.add(type["TypeName"])
@@ -345,22 +351,28 @@ def log_error(msg, region):
 
 def analyze_region(region):
     """
-    Gets all resource types that are supported in the given region, lists their respective resources (if not filtered
-    by arguments) and adds them to the result collection.
+    Gets resource types that are supported in the given region, lists their respective resources (if not filtered by
+    arguments) and adds them to the result collection.
     """
     boto_session = boto3.Session(profile_name=args.profile, region_name=region)
 
     print("Reading supported resource types for region {}".format(region))
     cloudformation_client = boto_session.client("cloudformation", config=BOTO_CLIENT_CONFIG)
+
+    # If there are resource type arguments, we can try to narrow down the listing of supported resource types
+    # to a common prefix. Consider prefixes until the first wildcard character supported by fnmatch: *, ?, [
+    resource_types_in_arguments = set(args.include_resource_types + args.exclude_resource_types)
+    resource_types_prefixes = [re.split(r"[*?[]", val)[0] for val in resource_types_in_arguments]
+    resource_types_common_prefix = os.path.commonprefix(resource_types_prefixes)
     try:
-        resource_types_supported = get_supported_resource_types(cloudformation_client)
+        resource_types_supported = get_supported_resource_types(cloudformation_client, resource_types_common_prefix)
     except Exception as ex:
         msg = "Unable to list supported resource types for region {}: {}".format(region, str(ex))
         log_error(msg, region)
         return
 
     # Log if there are resource type arguments that don't have any matches in this region
-    for pattern in sorted(set(args.include_resource_types + args.exclude_resource_types)):
+    for pattern in sorted(resource_types_in_arguments):
         if not fnmatch.filter(resource_types_supported, pattern):
             msg = "Provided resource type does not match any supported resource types in region {}: {}".format(
                 region, pattern
@@ -374,6 +386,12 @@ def analyze_region(region):
     for pattern in args.exclude_resource_types:
         resource_types_enabled.difference_update(fnmatch.filter(resource_types_supported, pattern))
     resource_types_enabled = sorted(resource_types_enabled)
+
+    # Log if no resource types remain to be listed after applying arguments
+    if not resource_types_enabled:
+        msg = "Zero resource types to be listed for region: {}".format(region)
+        log_error(msg, region)
+        return
 
     # List resources for each enabled resource type
     cloudcontrol_client = boto_session.client("cloudcontrol", config=BOTO_CLIENT_CONFIG)
