@@ -230,6 +230,12 @@ def apply_default_resources_filter(resource_type, resources):
         case "AWS::MemoryDB::User":
             return {k: v for k, v in resources.items() if k != "default"}
 
+        case "AWS::Neptune::DBClusterParameterGroup":
+            return {k: v for k, v in resources.items() if not k.startswith("default.")}
+
+        case "AWS::Neptune::DBParameterGroup":
+            return {k: v for k, v in resources.items() if not k.startswith("default.")}
+
         case "AWS::RAM::Permission":
             return {k: v for k, v in resources.items() if v["PermissionType"] != "AWS_MANAGED"}
 
@@ -250,6 +256,9 @@ def apply_default_resources_filter(resource_type, resources):
 
         case "AWS::Route53Resolver::ResolverRuleAssociation":
             return {k: v for k, v in resources.items() if not k.startswith("rslvr-autodefined-")}
+
+        case "AWS::S3::BucketPolicy":
+            return {k: v for k, v in resources.items() if v["PolicyDocument"]}
 
         case "AWS::S3::StorageLens":
             return {k: v for k, v in resources.items() if k != "default-account-dashboard"}
@@ -539,7 +548,7 @@ if __name__ == "__main__":
 
     # Collect resources using one thread for each target region
     print("Analyzing account ID {}".format(sts_response["Account"]))
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(args.regions)) as executor:
         for region in args.regions:
             executor.submit(analyze_region, region)
     print("Listing done")

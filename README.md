@@ -7,7 +7,7 @@ Uses the AWS Cloud Control API to list resources that are present in a given AWS
 
 Make sure you have AWS credentials configured for your target account. This can either be done using [environment variables](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html) or by specifying a [named profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html) in the optional `--profile` argument.
 
-Install dependencies:
+Ensure you run at least Python 3.10 (or newer) and install dependencies:
 
 ```bash
 pip install -r requirements.txt
@@ -51,7 +51,7 @@ python aws_list_resources.py --regions ALL --include-resource-types AWS::EC2::*,
 
 ## Minimum IAM permissions required
 
-The script requires read access to all AWS services you want to list resources for. As an example, if you want to list resources of the type `AWS::EC2::*`, you can grant permissions using the AWS-managed policy `AmazonEC2ReadOnlyAccess`. If you want to list any kind of resource type, you can use the AWS-managed policy `ReadOnlyAccess`. Additionally, the following permissions are required:
+The script requires read access to all AWS services you want to list resources for. As an example, if you want to list resources of the type `AWS::EC2::*`, you can grant permissions using the AWS-managed policy `AmazonEC2ReadOnlyAccess`. If you want to list any kind of resource type, you can use the AWS-managed policy `ReadOnlyAccess`. In any case, the following permissions are always required:
 
 ```json
 {

@@ -348,16 +348,6 @@
                     "BucketName": "testbucket-123456789012"
                 }
             },
-            "AWS::S3::BucketPolicy": {
-                "athena-results-123456789012": {
-                    "Bucket": "athena-results-123456789012",
-                    "PolicyDocument": ""
-                },
-                "testbucket-123456789012": {
-                    "Bucket": "testbucket-123456789012",
-                    "PolicyDocument": ""
-                }
-            },
             "AWS::SSO::Instance": {
                 "arn:aws:sso:::instance/ssoins-698762cc2951f199": {
                     "InstanceArn": "arn:aws:sso:::instance/ssoins-698762cc2951f199"
