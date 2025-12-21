@@ -41,6 +41,9 @@ def apply_default_resources_filter(resource_type, resources):
     AWS service is actually used or not. Returns the list of remaining resources after applying the filter.
     """
     match resource_type:
+        case "AWS::Billing::BillingView":
+            return {k: v for k, v in resources.items() if ":billingview/primary" not in k}
+
         case "AWS::AppConfig::DeploymentStrategy":
             return {k: v for k, v in resources.items() if not k.startswith("AppConfig.")}
 
@@ -61,6 +64,9 @@ def apply_default_resources_filter(resource_type, resources):
 
         case "AWS::Backup::BackupVault":
             return {k: v for k, v in resources.items() if k != "Default"}
+
+        case "AWS::Bedrock::IntelligentPromptRouter":
+            return {k: v for k, v in resources.items() if ":default-prompt-router/" not in k}
 
         case "AWS::Cassandra::Keyspace":
             return {k: v for k, v in resources.items() if k != "system_multiregion_info"}
@@ -97,6 +103,7 @@ def apply_default_resources_filter(resource_type, resources):
                 "88a5eaf4-2fd4-4709-b370-b4c650ea3fcf",
                 "acba4595-bd28-49b8-b9fe-13317c0390fa",
                 "b689b0a8-53d0-40ab-baf2-68738e2966ac",
+                "bf0718e1-ba1e-49d1-88b1-f726733018ae",
             )
             return {k: v for k, v in resources.items() if k not in default_resources}
 
@@ -132,6 +139,7 @@ def apply_default_resources_filter(resource_type, resources):
                 "Deploy|EC2|1",
                 "Deploy|ECS|1",
                 "Deploy|EKS|1",
+                "Deploy|Lambda|1",
                 "Deploy|ElasticBeanstalk|1",
                 "Deploy|OpsWorks|1",
                 "Deploy|S3|1",
@@ -181,6 +189,8 @@ def apply_default_resources_filter(resource_type, resources):
                 "ap-south-1",
                 "ap-southeast-1",
                 "ap-southeast-2",
+                "ap-southeast-5",
+                "ap-southeast-7",
                 "ca-central-1",
                 "eu-central-1",
                 "eu-north-1",
@@ -194,6 +204,7 @@ def apply_default_resources_filter(resource_type, resources):
                 "us-east-1-atl-1",
                 "us-east-1-chi-1",
                 "us-east-1-dfw-1",
+                "us-east-1-dfw-2",
                 "us-east-1-iah-1",
                 "us-east-1-mci-1",
                 "us-east-2",
@@ -262,6 +273,12 @@ def apply_default_resources_filter(resource_type, resources):
 
         case "AWS::S3::StorageLens":
             return {k: v for k, v in resources.items() if k != "default-account-dashboard"}
+
+        case "AWS::SMSVOICE::OptOutList":
+            return {k: v for k, v in resources.items() if k != "Default"}
+
+        case "AWS::SMSVOICE::ResourcePolicy":
+            return {k: v for k, v in resources.items() if ":opt-out-list/Default" not in k}
 
         case "AWS::SSM::Document":
             default_prefixes = (
