@@ -453,8 +453,11 @@ if __name__ == "__main__":
         for requirements_line in requirements_file.read().splitlines():
             requirement = packaging.requirements.Requirement(requirements_line)
             expected_version_specifier = requirement.specifier
-            installed_version = packaging.version.parse(importlib.metadata.version(requirement.name))
-            if installed_version not in expected_version_specifier:
+            try:
+                installed_version = packaging.version.parse(importlib.metadata.version(requirement.name))
+                if installed_version not in expected_version_specifier:
+                    raise ImportError()
+            except:
                 print("Unfulfilled requirement: {}".format(requirements_line))
                 sys.exit(1)
 
@@ -488,12 +491,6 @@ if __name__ == "__main__":
         required=True,
         type=parse_regions,
         help="Comma-separated list of target AWS regions or 'ALL'.",
-    )
-    parser.add_argument(
-        "--show-stats",
-        default=False,
-        action="store_true",
-        help="Show stats about collected resources at the end of the run. Can contain duplicates due to AWS returning the same resource information for multiple regions.",
     )
     args = parser.parse_args()
 
@@ -552,33 +549,6 @@ if __name__ == "__main__":
         for region in args.regions:
             executor.submit(analyze_region, region)
     print("Listing done")
-
-    # Show stats, if configured
-    if args.show_stats:
-        resource_counts_by_region = {}
-        resource_counts_by_type = {}
-        for region in result_collection["regions"]:
-            for resource_type, value in result_collection["regions"][region].items():
-                count = value if args.only_store_counts else len(value)
-                try:
-                    resource_counts_by_region[region] += count
-                except KeyError:
-                    resource_counts_by_region[region] = count
-                try:
-                    resource_counts_by_type[resource_type] += count
-                except KeyError:
-                    resource_counts_by_type[resource_type] = count
-
-        print("\nTop 10 resource counts by region\n---")
-        for region in sorted(resource_counts_by_region, key=resource_counts_by_region.get, reverse=True)[:10]:
-            print("{}: {}".format(region, resource_counts_by_region[region]))
-
-        print("\nTop 10 resource counts by type\n---")
-        for resource_type in sorted(resource_counts_by_type, key=resource_counts_by_type.get, reverse=True)[:10]:
-            print("{}: {}".format(resource_type, resource_counts_by_type[resource_type]))
-
-        print("\nTotal number of resources listed\n---")
-        print(sum(resource_counts_by_region.values()))
 
     # Write result file
     result_file = os.path.join(
