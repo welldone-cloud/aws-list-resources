@@ -517,8 +517,8 @@ if __name__ == "__main__":
     except botocore.exceptions.ProfileNotFound as ex:
         print("Error: {}".format(ex))
         sys.exit(1)
-    sts_client = boto_session.client("sts", config=BOTO_CLIENT_CONFIG)
     try:
+        sts_client = boto_session.client("sts", config=BOTO_CLIENT_CONFIG)
         sts_response = sts_client.get_caller_identity()
     except:
         print("No or invalid AWS credentials configured")
