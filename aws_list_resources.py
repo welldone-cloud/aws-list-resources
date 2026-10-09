@@ -16,7 +16,6 @@ import pathlib
 import re
 import sys
 
-
 AWS_DEFAULT_REGION = "us-east-1"
 
 BOTO_CLIENT_CONFIG = botocore.config.Config(
@@ -519,10 +518,28 @@ if __name__ == "__main__":
         sys.exit(1)
     try:
         sts_client = boto_session.client("sts", config=BOTO_CLIENT_CONFIG)
-        sts_response = sts_client.get_caller_identity()
-    except:
+        get_caller_identity_response = sts_client.get_caller_identity()
+    except (
+        botocore.exceptions.LoginTokenLoadError,
+        botocore.exceptions.NoCredentialsError,
+        botocore.exceptions.PartialCredentialsError,
+        botocore.exceptions.CredentialRetrievalError,
+        botocore.exceptions.UnknownCredentialError,
+        botocore.exceptions.ClientError,
+        botocore.exceptions.LoginRefreshRequired,
+    ) as ex:
+        if isinstance(ex, botocore.exceptions.ClientError) and ex.response["Error"].get("Code") not in (
+            "InvalidClientTokenId",
+            "InvalidIdentityToken",
+            "ExpiredToken",
+            "SignatureDoesNotMatch",
+        ):
+            raise
         print("No or invalid AWS credentials configured")
         sys.exit(1)
+    else:
+        account_id = get_caller_identity_response["Account"]
+        account_principal = get_caller_identity_response["Arn"]
 
     # Prepare target regions
     ec2_client = boto_session.client("ec2", config=BOTO_CLIENT_CONFIG)
@@ -551,8 +568,8 @@ if __name__ == "__main__":
     run_timestamp = datetime.datetime.now(datetime.timezone.utc).strftime(TIMESTAMP_FORMAT)
     result_collection = {
         "_metadata": {
-            "account_id": sts_response["Account"],
-            "account_principal": sts_response["Arn"],
+            "account_id": account_id,
+            "account_principal": account_principal,
             "errors": {region: [] for region in args.regions},
             "invocation": " ".join(sys.argv),
             "run_timestamp": run_timestamp,
@@ -561,16 +578,14 @@ if __name__ == "__main__":
     }
 
     # Collect resources using one thread for each target region
-    print("Analyzing account ID {}".format(sts_response["Account"]))
+    print("Analyzing account ID {}".format(account_id))
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(args.regions)) as executor:
         for region in args.regions:
             executor.submit(analyze_region, region)
     print("Listing done")
 
     # Write result file
-    result_file = os.path.join(
-        results_directory, "resources_{}_{}.json".format(sts_response["Account"], run_timestamp)
-    )
+    result_file = os.path.join(results_directory, "resources_{}_{}.json".format(account_id, run_timestamp))
     with open(result_file, "w") as out_file:
         json.dump(result_collection, out_file, indent=2, sort_keys=True)
 
