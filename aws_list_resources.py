@@ -64,8 +64,14 @@ def apply_default_resources_filter(resource_type, resources):
         case "AWS::Backup::BackupVault":
             return {k: v for k, v in resources.items() if k != "Default"}
 
+        case "AWS::BCM::Dashboard":
+            return {k: v for k, v in resources.items() if ":dashboard/managed-" not in k}
+
         case "AWS::Bedrock::IntelligentPromptRouter":
             return {k: v for k, v in resources.items() if ":default-prompt-router/" not in k}
+
+        case "AWS::BedrockMantle::Project":
+            return {k: v for k, v in resources.items() if ":project/default" not in k}
 
         case "AWS::Cassandra::Keyspace":
             return {k: v for k, v in resources.items() if k != "system_multiregion_info"}
@@ -161,6 +167,12 @@ def apply_default_resources_filter(resource_type, resources):
             )
             return {k: v for k, v in resources.items() if k not in default_resources}
 
+        case "AWS::DAX::ParameterGroup":
+            return {k: v for k, v in resources.items() if not k.startswith("default.dax")}
+
+        case "AWS::DocDB::DBClusterParameterGroup":
+            return {k: v for k, v in resources.items() if not k.startswith("default.")}
+
         case "AWS::EC2::PrefixList":
             return {k: v for k, v in resources.items() if v["OwnerId"] != "AWS"}
 
@@ -172,7 +184,10 @@ def apply_default_resources_filter(resource_type, resources):
             return {k: v for k, v in resources.items() if not k.startswith("default.")}
 
         case "AWS::ElastiCache::User":
-            return {k: v for k, v in resources.items() if k != "default"}
+            return {k: v for k, v in resources.items() if not k.startswith("default")}
+
+        case "AWS::ElastiCache::UserGroup":
+            return {k: v for k, v in resources.items() if not k.startswith("default")}
 
         case "AWS::Events::EventBus":
             return {k: v for k, v in resources.items() if k != "default"}
@@ -186,34 +201,50 @@ def apply_default_resources_filter(resource_type, resources):
                 "ap-northeast-2",
                 "ap-northeast-3",
                 "ap-south-1",
+                "ap-south-2",
                 "ap-southeast-1",
                 "ap-southeast-2",
+                "ap-southeast-3",
                 "ap-southeast-5",
                 "ap-southeast-7",
                 "ca-central-1",
                 "eu-central-1",
                 "eu-north-1",
                 "eu-south-1",
+                "eu-south-2",
                 "eu-west-1",
                 "eu-west-2",
                 "eu-west-3",
+                "il-central-1",
                 "me-south-1",
+                "mx-central-1",
                 "sa-east-1",
                 "us-east-1",
                 "us-east-1-atl-1",
+                "us-east-1-atl-2",
+                "us-east-1-bue-1",
                 "us-east-1-chi-1",
+                "us-east-1-chi-2",
                 "us-east-1-dfw-1",
                 "us-east-1-dfw-2",
                 "us-east-1-iah-1",
+                "us-east-1-iah-2",
+                "us-east-1-lim-1",
                 "us-east-1-mci-1",
+                "us-east-1-mia-2",
+                "us-east-1-nyc-2",
                 "us-east-2",
                 "us-west-1",
                 "us-west-2",
                 "us-west-2-den-1",
                 "us-west-2-lax-1",
                 "us-west-2-phx-1",
+                "us-west-2-phx-2",
             )
             return {k: v for k, v in resources.items() if k not in default_resources}
+
+        case "AWS::Glue::ConnectionType":
+            return {}
 
         case "AWS::IAM::ManagedPolicy":
             return {k: v for k, v in resources.items() if not k.startswith("arn:aws:iam::aws:policy/")}
@@ -222,11 +253,17 @@ def apply_default_resources_filter(resource_type, resources):
             default_resources = ("iot:CredentialProvider", "iot:Data-ATS", "iot:Jobs")
             return {k: v for k, v in resources.items() if k not in default_resources}
 
+        case "AWS::IoT::EncryptionConfiguration":
+            return {k: v for k, v in resources.items() if k != account_id}
+
         case "AWS::KMS::Alias":
             return {k: v for k, v in resources.items() if not k.startswith("alias/aws/")}
 
         case "AWS::MediaLive::CloudWatchAlarmTemplate":
             return {k: v for k, v in resources.items() if "::cloudwatch-alarm-template:aws-" not in v["Arn"]}
+
+        case "AWS::MediaConvert::Queue":
+            return {k: v for k, v in resources.items() if k != "Default"}
 
         case "AWS::MediaLive::CloudWatchAlarmTemplateGroup":
             return {k: v for k, v in resources.items() if "::cloudwatch-alarm-template-group:aws-" not in v["Arn"]}
@@ -272,6 +309,15 @@ def apply_default_resources_filter(resource_type, resources):
 
         case "AWS::S3::StorageLens":
             return {k: v for k, v in resources.items() if k != "default-account-dashboard"}
+
+        case "AWS::SecurityAgent::SecurityRequirementPack":
+            default_resources = (
+                "srp-am-base",
+                "srp-am-nist-csf",
+                "srp-am-pci-dss",
+                "srp-am-well-architected",
+            )
+            return {k: v for k, v in resources.items() if k not in default_resources}
 
         case "AWS::SMSVOICE::OptOutList":
             return {k: v for k, v in resources.items() if k != "Default"}
@@ -462,8 +508,8 @@ def parse_regions(val):
 
 if __name__ == "__main__":
     # Check runtime environment
-    if sys.version_info < (3, 10):
-        print("Python version 3.10 or higher required")
+    if sys.version_info < (3, 11):
+        print("Python version 3.11 or higher required")
         sys.exit(1)
     with open(os.path.join(pathlib.Path(__file__).parent, "requirements.txt"), "r") as requirements_file:
         for requirements_line in requirements_file.read().splitlines():

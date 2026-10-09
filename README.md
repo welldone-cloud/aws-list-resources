@@ -5,7 +5,7 @@ Uses the AWS Cloud Control API to list resources that are present in a given AWS
 Main differences in comparison to using AWS Resource Explorer are:
 * The AWS Cloud Control API supports a higher number of resources (see [here](https://docs.aws.amazon.com/cloudcontrolapi/latest/userguide/supported-resources.html) vs. [here](https://docs.aws.amazon.com/resource-explorer/latest/userguide/supported-resource-types.html)).
 * Creating views and indexes in AWS Resource Explorer requires write access to the underlying account. This script only requires read access.
-* The AWS Cloud Control API returns global AWS resources in each AWS region. This means that, for example, if you target three AWS regions with this script, global resources like IAM roles or CloudFront distributions are shown three times in the result file.
+* The AWS Cloud Control API returns global AWS resources in each AWS region. This means that, for example, it is sufficient to scan your primary AWS region and global resources like IAM roles or CloudFront distributions will also be shown in the result file.
 
 
 ## Usage
@@ -15,7 +15,7 @@ variables](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvar
 profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html) in the optional `--profile` 
 argument.
 
-Ensure you run at least Python 3.10 (or newer) and install dependencies:
+Ensure you run at least Python 3.11 (or newer) and install dependencies:
 
 ```bash
 pip install -r requirements.txt
@@ -50,27 +50,20 @@ python aws_list_resources.py --regions ALL --include-resource-types AWS::EC2::*,
 
 * The script can only discover resources that are supported by the `List` operation of the AWS Cloud Control API ([see here](https://docs.aws.amazon.com/cloudcontrolapi/latest/userguide/supported-resources.html)).
 
-* The script filters out default resources that AWS provides in each account and that often cannot be modified or deleted. However, AWS may create new default resources any time that the script does not correctly filter yet. Please create an issue in case you notice missing filters.
+* The script filters out default resources that AWS creates in each account and that often cannot be modified or deleted. However, AWS may create new default resources any time that the script does not correctly filter yet. Please create an issue in case you notice missing filters.
 
 
-## Minimum IAM permissions required
+## IAM permissions required
 
-The script requires read access to all AWS services you want to list resources for. As an example, if you want to list resources of the type `AWS::EC2::*`, you can grant permissions using the AWS-managed policy `AmazonEC2ReadOnlyAccess`. If you want to list any kind of resource type, you can use the AWS-managed policy `ReadOnlyAccess`. In any case, the following permissions are always required:
+The script requires read access to the CloudFormation service and to all AWS services you want to list resources for. It does not require write access and does not make any mutating API calls. 
 
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "ec2:DescribeRegions",
-                "cloudformation:ListResources",
-                "cloudformation:ListTypes"
-            ],
-            "Resource": "*"
-        }
-    ]
-}
-```
+In practice, there is a balance between granting only the permissions required and being able to list a high number of different resource types within an account:
+
+| AWS-managed policy | Resource type coverage | Comment | 
+| -------- | ------- | ------- |
+| `ViewOnlyAccess` | Medium | This policy grants your principal only permissions to read metadata within your AWS account. However, it is not well-maintained by AWS: Permissions to list certain resource types may not be granted at all, or the policy is only updated with a significant delay after a new service or feature was released. |
+| `ReadOnlyAccess` | High | This policy grants your principal permissions to read both metadata and content within your AWS account. It is better maintained than `ViewOnlyAccess` and can thus list a higher number resource types. |
+| `AdministratorAccess` | Highest | This policy grants your principal full read and write access within your AWS account. On the other hand, it is also capable of listing the most resource types: AWS service teams do not need to actively adapt this policy when releasing a new service or feature, because all API calls are allowed by default. |
+
+In case the script does not have permissions to list a certain resource type, an error message will be shown on the console output and in the result file (`"Access denied to list resource type [...]"`).
 
