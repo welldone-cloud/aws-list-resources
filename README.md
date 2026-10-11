@@ -5,7 +5,7 @@ Uses the AWS Cloud Control API to list resources that are present in a given AWS
 Main differences in comparison to using AWS Resource Explorer are:
 * The AWS Cloud Control API supports a higher number of resources (see [here](https://docs.aws.amazon.com/cloudcontrolapi/latest/userguide/supported-resources.html) vs. [here](https://docs.aws.amazon.com/resource-explorer/latest/userguide/supported-resource-types.html)).
 * Creating views and indexes in AWS Resource Explorer requires write access to the underlying account. This script only requires read access.
-* The AWS Cloud Control API returns global AWS resources in each AWS region. This means that, for example, it is sufficient to scan your primary AWS region and global resources like IAM roles or CloudFront distributions will also be shown in the result file.
+* The AWS Cloud Control API returns global AWS resources in each AWS region. This means that it is sufficient to scan your primary AWS region with this script, and global resources (like IAM roles or CloudFront distributions) will also be shown in the result file.
 
 
 ## Usage
@@ -57,13 +57,13 @@ python aws_list_resources.py --regions ALL --include-resource-types AWS::EC2::*,
 
 The script requires read access to the CloudFormation service and to all AWS services you want to list resources for. It does not require write access and does not make any mutating API calls. 
 
-In practice, there is a balance between granting only the permissions required and being able to list a high number of different resource types within an account:
+In practice, there is a balance between granting only the permissions required and being able to list a high number of different resource types within an account. You may use the following AWS-managed policies when running the script:
 
 | AWS-managed policy | Resource type coverage | Comment | 
 | -------- | ------- | ------- |
-| `ViewOnlyAccess` | Medium | This policy grants your principal only permissions to read metadata within your AWS account. However, it is not well-maintained by AWS: Permissions to list certain resource types may not be granted at all, or the policy is only updated with a significant delay after a new service or feature was released. |
+| `ViewOnlyAccess` | Medium | This policy grants your principal only permissions to read metadata within your AWS account. However, it is not well-maintained by AWS: Certain resource types cannot be listed at all, or the policy is only updated with a significant delay after a new service or feature was released. |
 | `ReadOnlyAccess` | High | This policy grants your principal permissions to read both metadata and content within your AWS account. It is better maintained than `ViewOnlyAccess` and can thus list a higher number resource types. |
 | `AdministratorAccess` | Highest | This policy grants your principal full read and write access within your AWS account. On the other hand, it is also capable of listing the most resource types: AWS service teams do not need to actively adapt this policy when releasing a new service or feature, because all API calls are allowed by default. |
 
-In case the script does not have permissions to list a certain resource type, an error message will be shown on the console output and in the result file (`"Access denied to list resource type [...]"`).
+In case the script does not have permissions to list a certain resource type, an error message is shown in the console output and in the result file (`"Access denied to list resource type [...]"`).
 
